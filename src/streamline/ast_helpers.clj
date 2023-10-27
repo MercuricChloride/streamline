@@ -14,6 +14,7 @@
   (= (first (second input)) :parent-function))
 
 (defn ->lambda
+  "Converts a syntax node into a lambda expression"
   ([input]
     (if (ho-fn? input)
       (let [[_ & lambda] input

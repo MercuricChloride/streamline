@@ -5,7 +5,9 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [
                  [org.clojure/clojure "1.10.0"]
-                 [instaparse "1.4.12"]]
+                 [instaparse "1.4.12"]
+                 [io.github.protojure/core "2.0.1"]
+                 [io.github.protojure/google.protobuf "2.0.0"]]
   :main ^:skip-aot streamline.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

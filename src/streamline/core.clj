@@ -1,6 +1,9 @@
 (ns streamline.core
   (:require [instaparse.core :as insta]
-             [streamline.ast-helpers :refer :all])
+             [streamline.ast-helpers :refer :all]
+             [clojure.java.io]
+             [sf.substreams.v1 :as sf]
+             [spyglass.streamline.alpha.ast :as ast])
   (:gen-class))
 
 (defn -main
@@ -46,4 +49,7 @@ map something_else:
 }
 "))
 
-(map ->map-module (rest ast))
+
+(def modules (map ->map-module (rest ast)))
+
+(def lam (first (:expressions (first modules))))
