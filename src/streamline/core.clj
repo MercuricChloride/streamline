@@ -26,10 +26,14 @@
     module-signature = <'('> identifier* <')'> <'->'> identifier
     module-body = (lambda <';'>)*
 
+    struct-def = 'struct' identifier <'{'> struct-body <'}'>
+    struct-body = (struct-field <';'>)*
+    struct-field = identifier <':'> identifier
+
     identifier = #'[a-zA-Z_][a-zA-Z0-9_]*'
     number = #'[0-9]+'
     "
-   :auto-whitespace :standard))
+   :auto-whitespace :comma))
 
 (def ast (streamline-parser "
 map pools_created:
@@ -45,11 +49,15 @@ map something_else:
  (block) => logs(block);
  filter (block) => logs(block);
  map (block) => logs(block);
- map (transfer foo) => logs(block);
+ map (transfer,foo) => logs(block);
 }
 "))
 
 
 (def modules (map ->map-module (rest ast)))
 
-(def lam (first (:expressions (first modules))))
+(let [[_ type ident sig body] (first (rest ast))
+      [_ & lambdas] body]
+  (map hof? lambdas))
+
+(->map-module (first  (rest ast)))

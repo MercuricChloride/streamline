@@ -2,21 +2,47 @@ syntax = "proto3";
 
 package spyglass.streamline.alpha.ast;
 
+message StreamlineFile {
+    repeated TypeDeclaration types = 1;
+    repeated ModuleDef modules = 2;
+}
+
+message TypeDeclaration {
+    string name = 1;
+    repeated TypeField fields = 2;
+}
+
+message TypeField {
+    string field_name = 1;
+    string field_type = 2;
+}
+
 message ModuleDef {
-    string module_kind = 1;
-    string module_name = 2;
-    repeated string module_inputs = 3;
-    string module_output = 4;
-    repeated Lambda module_body = 5;
+    string kind = 1;
+    string identifier = 2;
+    ModuleSignature signature = 3;
+    repeated Function pipeline = 5;
+}
+
+message Function {
+    oneof function {
+        Lambda lambda = 1;
+        Hof hof = 2;
+    }
+}
+
+message ModuleSignature {
+    repeated string  inputs = 1;
+    string output = 2;
 }
 
 message Lambda {
-    optional string parent_function = 1;
-    repeated string inputs = 2;
-    repeated Function_Application body = 3;
+    repeated string inputs = 1;
+    string body = 2; // TODO Make this a proper list of expressions
 }
 
-message Function_Application {
-    string function_name = 1;
-    repeated string arguments = 2;
+message Hof {
+    string parent = 1;
+    Lambda callback = 2;
 }
+

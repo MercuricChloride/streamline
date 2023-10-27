@@ -18,33 +18,50 @@
 ;;----------------------------------------------------------------------------------
 ;;----------------------------------------------------------------------------------
 
+(declare cis->StreamlineFile)
+(declare ecis->StreamlineFile)
+(declare new-StreamlineFile)
+(declare cis->TypeDeclaration)
+(declare ecis->TypeDeclaration)
+(declare new-TypeDeclaration)
+(declare cis->TypeField)
+(declare ecis->TypeField)
+(declare new-TypeField)
 (declare cis->ModuleDef)
 (declare ecis->ModuleDef)
 (declare new-ModuleDef)
+(declare cis->Function)
+(declare ecis->Function)
+(declare new-Function)
+(declare cis->ModuleSignature)
+(declare ecis->ModuleSignature)
+(declare new-ModuleSignature)
 (declare cis->Lambda)
 (declare ecis->Lambda)
 (declare new-Lambda)
-(declare cis->Function_Application)
-(declare ecis->Function_Application)
-(declare new-Function_Application)
+(declare cis->Hof)
+(declare ecis->Hof)
+(declare new-Hof)
 
 ;;----------------------------------------------------------------------------------
 ;;----------------------------------------------------------------------------------
-;; Lambda--parent-function's oneof Implementations
+;; Function-function's oneof Implementations
 ;;----------------------------------------------------------------------------------
 ;;----------------------------------------------------------------------------------
 
-(defn convert-Lambda--parent-function [origkeyval]
+(defn convert-Function-function [origkeyval]
   (cond
-     (get-in origkeyval [:-parent-function :parent-function]) origkeyval
+     (get-in origkeyval [:function :lambda]) (update-in origkeyval [:function :lambda] new-Lambda)
+     (get-in origkeyval [:function :hof]) (update-in origkeyval [:function :hof] new-Hof)
      :default origkeyval))
 
-(defn write-Lambda--parent-function [-parent-function os]
-  (let [field (first -parent-function)
+(defn write-Function-function [function os]
+  (let [field (first function)
         k (when-not (nil? field) (key field))
         v (when-not (nil? field) (val field))]
      (case k
-         :parent-function (serdes.core/write-String 1  {:optimize false} v os)
+         :lambda (serdes.core/write-embedded 1 v os)
+         :hof (serdes.core/write-embedded 2 v os)
          nil)))
 
 
@@ -56,27 +73,179 @@
 ;;----------------------------------------------------------------------------------
 
 ;-----------------------------------------------------------------------------
-; ModuleDef
+; StreamlineFile
 ;-----------------------------------------------------------------------------
-(defrecord ModuleDef-record [module-kind module-name module-inputs module-output module-body]
+(defrecord StreamlineFile-record [types modules]
   pb/Writer
   (serialize [this os]
-    (serdes.core/write-String 1  {:optimize true} (:module-kind this) os)
-    (serdes.core/write-String 2  {:optimize true} (:module-name this) os)
-    (serdes.complex/write-repeated serdes.core/write-String 3 (:module-inputs this) os)
-    (serdes.core/write-String 4  {:optimize true} (:module-output this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 5 (:module-body this) os))
+    (serdes.complex/write-repeated serdes.core/write-embedded 1 (:types this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:modules this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.StreamlineFile"))
+
+(s/def ::StreamlineFile-spec (s/keys :opt-un []))
+(def StreamlineFile-defaults {:types [] :modules [] })
+
+(defn cis->StreamlineFile
+  "CodedInputStream to StreamlineFile"
+  [is]
+  (->> (tag-map StreamlineFile-defaults
+         (fn [tag index]
+             (case index
+               1 [:types (serdes.complex/cis->repeated ecis->TypeDeclaration is)]
+               2 [:modules (serdes.complex/cis->repeated ecis->ModuleDef is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->StreamlineFile-record)))
+
+(defn ecis->StreamlineFile
+  "Embedded CodedInputStream to StreamlineFile"
+  [is]
+  (serdes.core/cis->embedded cis->StreamlineFile is))
+
+(defn new-StreamlineFile
+  "Creates a new instance from a map, similar to map->StreamlineFile except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::StreamlineFile-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::StreamlineFile-spec init))))]}
+  (-> (merge StreamlineFile-defaults init)
+      (cond-> (some? (get init :types)) (update :types #(map new-TypeDeclaration %)))
+      (cond-> (some? (get init :modules)) (update :modules #(map new-ModuleDef %)))
+      (map->StreamlineFile-record)))
+
+(defn pb->StreamlineFile
+  "Protobuf to StreamlineFile"
+  [input]
+  (cis->StreamlineFile (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record StreamlineFile-meta {:type "spyglass.streamline.alpha.ast.StreamlineFile" :decoder pb->StreamlineFile})
+
+;-----------------------------------------------------------------------------
+; TypeDeclaration
+;-----------------------------------------------------------------------------
+(defrecord TypeDeclaration-record [name fields]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:name this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:fields this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.TypeDeclaration"))
+
+(s/def :spyglass.streamline.alpha.ast.TypeDeclaration/name string?)
+
+(s/def ::TypeDeclaration-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.TypeDeclaration/name ]))
+(def TypeDeclaration-defaults {:name "" :fields [] })
+
+(defn cis->TypeDeclaration
+  "CodedInputStream to TypeDeclaration"
+  [is]
+  (->> (tag-map TypeDeclaration-defaults
+         (fn [tag index]
+             (case index
+               1 [:name (serdes.core/cis->String is)]
+               2 [:fields (serdes.complex/cis->repeated ecis->TypeField is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->TypeDeclaration-record)))
+
+(defn ecis->TypeDeclaration
+  "Embedded CodedInputStream to TypeDeclaration"
+  [is]
+  (serdes.core/cis->embedded cis->TypeDeclaration is))
+
+(defn new-TypeDeclaration
+  "Creates a new instance from a map, similar to map->TypeDeclaration except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::TypeDeclaration-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::TypeDeclaration-spec init))))]}
+  (-> (merge TypeDeclaration-defaults init)
+      (cond-> (some? (get init :fields)) (update :fields #(map new-TypeField %)))
+      (map->TypeDeclaration-record)))
+
+(defn pb->TypeDeclaration
+  "Protobuf to TypeDeclaration"
+  [input]
+  (cis->TypeDeclaration (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record TypeDeclaration-meta {:type "spyglass.streamline.alpha.ast.TypeDeclaration" :decoder pb->TypeDeclaration})
+
+;-----------------------------------------------------------------------------
+; TypeField
+;-----------------------------------------------------------------------------
+(defrecord TypeField-record [field-name field-type]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:field-name this) os)
+    (serdes.core/write-String 2  {:optimize true} (:field-type this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.TypeField"))
+
+(s/def :spyglass.streamline.alpha.ast.TypeField/field-name string?)
+(s/def :spyglass.streamline.alpha.ast.TypeField/field-type string?)
+(s/def ::TypeField-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.TypeField/field-name :spyglass.streamline.alpha.ast.TypeField/field-type ]))
+(def TypeField-defaults {:field-name "" :field-type "" })
+
+(defn cis->TypeField
+  "CodedInputStream to TypeField"
+  [is]
+  (->> (tag-map TypeField-defaults
+         (fn [tag index]
+             (case index
+               1 [:field-name (serdes.core/cis->String is)]
+               2 [:field-type (serdes.core/cis->String is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->TypeField-record)))
+
+(defn ecis->TypeField
+  "Embedded CodedInputStream to TypeField"
+  [is]
+  (serdes.core/cis->embedded cis->TypeField is))
+
+(defn new-TypeField
+  "Creates a new instance from a map, similar to map->TypeField except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::TypeField-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::TypeField-spec init))))]}
+  (-> (merge TypeField-defaults init)
+      (map->TypeField-record)))
+
+(defn pb->TypeField
+  "Protobuf to TypeField"
+  [input]
+  (cis->TypeField (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record TypeField-meta {:type "spyglass.streamline.alpha.ast.TypeField" :decoder pb->TypeField})
+
+;-----------------------------------------------------------------------------
+; ModuleDef
+;-----------------------------------------------------------------------------
+(defrecord ModuleDef-record [kind identifier signature pipeline]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:kind this) os)
+    (serdes.core/write-String 2  {:optimize true} (:identifier this) os)
+    (serdes.core/write-embedded 3 (:signature this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 5 (:pipeline this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.ModuleDef"))
 
-(s/def :spyglass.streamline.alpha.ast.ModuleDef/module-kind string?)
-(s/def :spyglass.streamline.alpha.ast.ModuleDef/module-name string?)
-(s/def :spyglass.streamline.alpha.ast.ModuleDef/module-inputs (s/every string?))
-(s/def :spyglass.streamline.alpha.ast.ModuleDef/module-output string?)
+(s/def :spyglass.streamline.alpha.ast.ModuleDef/kind string?)
+(s/def :spyglass.streamline.alpha.ast.ModuleDef/identifier string?)
 
-(s/def ::ModuleDef-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.ModuleDef/module-kind :spyglass.streamline.alpha.ast.ModuleDef/module-name :spyglass.streamline.alpha.ast.ModuleDef/module-inputs :spyglass.streamline.alpha.ast.ModuleDef/module-output ]))
-(def ModuleDef-defaults {:module-kind "" :module-name "" :module-inputs [] :module-output "" :module-body [] })
+
+(s/def ::ModuleDef-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.ModuleDef/kind :spyglass.streamline.alpha.ast.ModuleDef/identifier ]))
+(def ModuleDef-defaults {:kind "" :identifier "" :pipeline [] })
 
 (defn cis->ModuleDef
   "CodedInputStream to ModuleDef"
@@ -84,11 +253,10 @@
   (->> (tag-map ModuleDef-defaults
          (fn [tag index]
              (case index
-               1 [:module-kind (serdes.core/cis->String is)]
-               2 [:module-name (serdes.core/cis->String is)]
-               3 [:module-inputs (serdes.complex/cis->repeated serdes.core/cis->String is)]
-               4 [:module-output (serdes.core/cis->String is)]
-               5 [:module-body (serdes.complex/cis->repeated ecis->Lambda is)]
+               1 [:kind (serdes.core/cis->String is)]
+               2 [:identifier (serdes.core/cis->String is)]
+               3 [:signature (ecis->ModuleSignature is)]
+               5 [:pipeline (serdes.complex/cis->repeated ecis->Function is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -106,7 +274,8 @@
   [init]
   {:pre [(if (s/valid? ::ModuleDef-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::ModuleDef-spec init))))]}
   (-> (merge ModuleDef-defaults init)
-      (cond-> (some? (get init :module-body)) (update :module-body #(map new-Lambda %)))
+      (cond-> (some? (get init :signature)) (update :signature new-ModuleSignature))
+      (cond-> (some? (get init :pipeline)) (update :pipeline #(map new-Function %)))
       (map->ModuleDef-record)))
 
 (defn pb->ModuleDef
@@ -117,22 +286,121 @@
 (def ^:protojure.protobuf.any/record ModuleDef-meta {:type "spyglass.streamline.alpha.ast.ModuleDef" :decoder pb->ModuleDef})
 
 ;-----------------------------------------------------------------------------
-; Lambda
+; Function
 ;-----------------------------------------------------------------------------
-(defrecord Lambda-record [-parent-function inputs body]
+(defrecord Function-record [function]
   pb/Writer
   (serialize [this os]
-    (write-Lambda--parent-function  (:-parent-function this) os)
-    (serdes.complex/write-repeated serdes.core/write-String 2 (:inputs this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 3 (:body this) os))
+    (write-Function-function  (:function this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.Function"))
+
+(s/def ::Function-spec (s/keys :opt-un []))
+(def Function-defaults {})
+
+(defn cis->Function
+  "CodedInputStream to Function"
+  [is]
+  (->> (tag-map Function-defaults
+         (fn [tag index]
+             (case index
+               1 [:function {:lambda (ecis->Lambda is)}]
+               2 [:function {:hof (ecis->Hof is)}]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->Function-record)))
+
+(defn ecis->Function
+  "Embedded CodedInputStream to Function"
+  [is]
+  (serdes.core/cis->embedded cis->Function is))
+
+(defn new-Function
+  "Creates a new instance from a map, similar to map->Function except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::Function-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::Function-spec init))))]}
+  (-> (merge Function-defaults init)
+      (convert-Function-function)
+      (map->Function-record)))
+
+(defn pb->Function
+  "Protobuf to Function"
+  [input]
+  (cis->Function (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record Function-meta {:type "spyglass.streamline.alpha.ast.Function" :decoder pb->Function})
+
+;-----------------------------------------------------------------------------
+; ModuleSignature
+;-----------------------------------------------------------------------------
+(defrecord ModuleSignature-record [inputs output]
+  pb/Writer
+  (serialize [this os]
+    (serdes.complex/write-repeated serdes.core/write-String 1 (:inputs this) os)
+    (serdes.core/write-String 2  {:optimize true} (:output this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.ModuleSignature"))
+
+(s/def :spyglass.streamline.alpha.ast.ModuleSignature/inputs (s/every string?))
+(s/def :spyglass.streamline.alpha.ast.ModuleSignature/output string?)
+(s/def ::ModuleSignature-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.ModuleSignature/inputs :spyglass.streamline.alpha.ast.ModuleSignature/output ]))
+(def ModuleSignature-defaults {:inputs [] :output "" })
+
+(defn cis->ModuleSignature
+  "CodedInputStream to ModuleSignature"
+  [is]
+  (->> (tag-map ModuleSignature-defaults
+         (fn [tag index]
+             (case index
+               1 [:inputs (serdes.complex/cis->repeated serdes.core/cis->String is)]
+               2 [:output (serdes.core/cis->String is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->ModuleSignature-record)))
+
+(defn ecis->ModuleSignature
+  "Embedded CodedInputStream to ModuleSignature"
+  [is]
+  (serdes.core/cis->embedded cis->ModuleSignature is))
+
+(defn new-ModuleSignature
+  "Creates a new instance from a map, similar to map->ModuleSignature except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::ModuleSignature-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::ModuleSignature-spec init))))]}
+  (-> (merge ModuleSignature-defaults init)
+      (map->ModuleSignature-record)))
+
+(defn pb->ModuleSignature
+  "Protobuf to ModuleSignature"
+  [input]
+  (cis->ModuleSignature (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record ModuleSignature-meta {:type "spyglass.streamline.alpha.ast.ModuleSignature" :decoder pb->ModuleSignature})
+
+;-----------------------------------------------------------------------------
+; Lambda
+;-----------------------------------------------------------------------------
+(defrecord Lambda-record [inputs body]
+  pb/Writer
+  (serialize [this os]
+    (serdes.complex/write-repeated serdes.core/write-String 1 (:inputs this) os)
+    (serdes.core/write-String 2  {:optimize true} (:body this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.Lambda"))
 
 (s/def :spyglass.streamline.alpha.ast.Lambda/inputs (s/every string?))
-
-(s/def ::Lambda-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.Lambda/inputs ]))
-(def Lambda-defaults {:inputs [] :body [] })
+(s/def :spyglass.streamline.alpha.ast.Lambda/body string?)
+(s/def ::Lambda-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.Lambda/inputs :spyglass.streamline.alpha.ast.Lambda/body ]))
+(def Lambda-defaults {:inputs [] :body "" })
 
 (defn cis->Lambda
   "CodedInputStream to Lambda"
@@ -140,9 +408,8 @@
   (->> (tag-map Lambda-defaults
          (fn [tag index]
              (case index
-               1 [:-parent-function {:parent-function (serdes.core/cis->String is)}]
-               2 [:inputs (serdes.complex/cis->repeated serdes.core/cis->String is)]
-               3 [:body (serdes.complex/cis->repeated ecis->Function_Application is)]
+               1 [:inputs (serdes.complex/cis->repeated serdes.core/cis->String is)]
+               2 [:body (serdes.core/cis->String is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -160,8 +427,6 @@
   [init]
   {:pre [(if (s/valid? ::Lambda-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::Lambda-spec init))))]}
   (-> (merge Lambda-defaults init)
-      (cond-> (some? (get init :body)) (update :body #(map new-Function_Application %)))
-      (convert-Lambda--parent-function)
       (map->Lambda-record)))
 
 (defn pb->Lambda
@@ -172,53 +437,54 @@
 (def ^:protojure.protobuf.any/record Lambda-meta {:type "spyglass.streamline.alpha.ast.Lambda" :decoder pb->Lambda})
 
 ;-----------------------------------------------------------------------------
-; Function_Application
+; Hof
 ;-----------------------------------------------------------------------------
-(defrecord Function_Application-record [function-name arguments]
+(defrecord Hof-record [parent callback]
   pb/Writer
   (serialize [this os]
-    (serdes.core/write-String 1  {:optimize true} (:function-name this) os)
-    (serdes.complex/write-repeated serdes.core/write-String 2 (:arguments this) os))
+    (serdes.core/write-String 1  {:optimize true} (:parent this) os)
+    (serdes.core/write-embedded 2 (:callback this) os))
   pb/TypeReflection
   (gettype [this]
-    "spyglass.streamline.alpha.ast.Function_Application"))
+    "spyglass.streamline.alpha.ast.Hof"))
 
-(s/def :spyglass.streamline.alpha.ast.Function_Application/function-name string?)
-(s/def :spyglass.streamline.alpha.ast.Function_Application/arguments (s/every string?))
-(s/def ::Function_Application-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.Function_Application/function-name :spyglass.streamline.alpha.ast.Function_Application/arguments ]))
-(def Function_Application-defaults {:function-name "" :arguments [] })
+(s/def :spyglass.streamline.alpha.ast.Hof/parent string?)
 
-(defn cis->Function_Application
-  "CodedInputStream to Function_Application"
+(s/def ::Hof-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.Hof/parent ]))
+(def Hof-defaults {:parent "" })
+
+(defn cis->Hof
+  "CodedInputStream to Hof"
   [is]
-  (->> (tag-map Function_Application-defaults
+  (->> (tag-map Hof-defaults
          (fn [tag index]
              (case index
-               1 [:function-name (serdes.core/cis->String is)]
-               2 [:arguments (serdes.complex/cis->repeated serdes.core/cis->String is)]
+               1 [:parent (serdes.core/cis->String is)]
+               2 [:callback (ecis->Lambda is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
-        (map->Function_Application-record)))
+        (map->Hof-record)))
 
-(defn ecis->Function_Application
-  "Embedded CodedInputStream to Function_Application"
+(defn ecis->Hof
+  "Embedded CodedInputStream to Hof"
   [is]
-  (serdes.core/cis->embedded cis->Function_Application is))
+  (serdes.core/cis->embedded cis->Hof is))
 
-(defn new-Function_Application
-  "Creates a new instance from a map, similar to map->Function_Application except that
+(defn new-Hof
+  "Creates a new instance from a map, similar to map->Hof except that
   it properly accounts for nested messages, when applicable.
   "
   [init]
-  {:pre [(if (s/valid? ::Function_Application-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::Function_Application-spec init))))]}
-  (-> (merge Function_Application-defaults init)
-      (map->Function_Application-record)))
+  {:pre [(if (s/valid? ::Hof-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::Hof-spec init))))]}
+  (-> (merge Hof-defaults init)
+      (cond-> (some? (get init :callback)) (update :callback new-Lambda))
+      (map->Hof-record)))
 
-(defn pb->Function_Application
-  "Protobuf to Function_Application"
+(defn pb->Hof
+  "Protobuf to Hof"
   [input]
-  (cis->Function_Application (serdes.stream/new-cis input)))
+  (cis->Hof (serdes.stream/new-cis input)))
 
-(def ^:protojure.protobuf.any/record Function_Application-meta {:type "spyglass.streamline.alpha.ast.Function_Application" :decoder pb->Function_Application})
+(def ^:protojure.protobuf.any/record Hof-meta {:type "spyglass.streamline.alpha.ast.Hof" :decoder pb->Hof})
 

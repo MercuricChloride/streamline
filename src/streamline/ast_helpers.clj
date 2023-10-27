@@ -1,47 +1,42 @@
 (ns streamline.ast-helpers)
 
-(defn second-or-rest
-  "Returns the second element of a vector and the rest of the vector"
-  [input]
-  (cond
-    (empty? input) nil
-    (and (= 2 (count input)) (not= (first input) :module-body)) (second input)
-    :else (into [] (rest input))))
-
-(defn ho-fn?
+(defn hof?
   "Returns if a lambda expression is the input to a higher-order fn"
   [input]
-  (= (first (second input)) :parent-function))
+  (let [[_ & lambda] input
+       [lambda-type] (first lambda)]
+       (= lambda-type :parent-function)))
 
-(defn ->lambda
-  "Converts a syntax node into a lambda expression"
+(defn ->function
+  "Converts a syntax node into a function ast node.
+  (Either) a lambda or a higher order function"
   ([input]
-    (if (ho-fn? input)
+    (if (hof? input)
       (let [[_ & lambda] input
             lambda-body (subvec (vec lambda) 1)
             [_ parent-fn] (first lambda)
             inputs (vec (butlast lambda-body))
             body (last lambda-body)]
-        (->lambda parent-fn inputs body))
+        (->function parent-fn inputs body))
       (let [[_ & lambda] input
             inputs (butlast lambda)
             body (second (last lambda))]
-        (->lambda inputs body))))
+        (->function inputs body))))
 
-  ([inputs body]
+  ([inputs body] ; NOTE Case where lambda is not the input to a higher-order fn
    {:expression-type "lambda"
     :inputs (vec (map second inputs))
-    :expression body})
+    :body body})
 
-  ([parent-fn inputs body]
-   {:expression-type "ho-fn"
-    :parent-function parent-fn
-    :lambda (->lambda inputs body)}))
+  ([parent-fn inputs body] ; NOTE Case where lambda is the input to a higher-order fn
+   {:expression-type "hof"
+    :parent parent-fn
+    :callback (->function inputs body)}))
 
 (defn ->module-body
   "Returns an AST node for the body of a module"
   [input]
-  (into [] (map ->lambda input)))
+  (into [] (map ->function input)))
 
 (defn ->module-signature
   [input]
@@ -54,9 +49,14 @@
 (defn ->map-module
   "Returns an AST node for a module definition"
   [input]
-  (let [[type ident signature body] (map second-or-rest (rest input))]
+  (let [[type ident signature body] (rest input)
+        [_ type] type
+        [_ ident] ident
+        [_ & signature] signature
+        [_ & body] body]
     {:node-type "module-def"
      :type type
      :name ident
      :signature (->module-signature signature)
-     :expressions (->module-body body)}))
+     :expressions (->module-body body)
+     }))
