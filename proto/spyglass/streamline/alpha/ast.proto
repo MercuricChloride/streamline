@@ -46,3 +46,37 @@ message Hof {
     Lambda callback = 2;
 }
 
+message Expression {
+    oneof expression {
+        Literal literal = 1;
+        string identifier = 2;
+        FunctionCall function_call = 3;
+        BinaryOp binary_op = 4;
+        FieldAccess field_access = 5;
+    }
+}
+
+message Literal {
+    oneof literal {
+        int64 int = 1;
+        double float = 2;
+        string string = 3;
+        bool bool = 4;
+    }
+}
+
+message FunctionCall {
+    string identifier = 1;
+    repeated Expression arguments = 2;
+}
+
+message BinaryOp {
+    string op = 1;
+    Expression lhs = 2;
+    Expression rhs = 3;
+}
+
+message FieldAccess {
+    Expression target = 1;
+    string field = 2;
+}

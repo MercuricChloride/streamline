@@ -1,15 +1,20 @@
 (ns streamline.ast-helpers)
 
 (defn hof?
-  "Returns if a lambda expression is the input to a higher-order fn"
+  "Returns if a function is a higher-order fn"
   [input]
   (let [[_ & lambda] input
        [lambda-type] (first lambda)]
        (= lambda-type :parent-function)))
 
+(defn ->expression
+  "Converts an expression into an expression syntax node"
+  [input]
+)
+
 (defn ->function
   "Converts a syntax node into a function ast node.
-  (Either) a lambda or a higher order function"
+  Either a lambda or a higher order function"
   ([input]
     (if (hof? input)
       (let [[_ & lambda] input
@@ -58,5 +63,5 @@
      :type type
      :name ident
      :signature (->module-signature signature)
-     :expressions (->module-body body)
+     :pipeline (->module-body body)
      }))
