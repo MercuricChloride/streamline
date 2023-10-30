@@ -1,9 +1,10 @@
 (ns streamline.core
   (:require [instaparse.core :as insta]
              [streamline.ast-helpers :refer :all]
-             [clojure.java.io]
-             [sf.substreams.v1 :as sf]
-             [spyglass.streamline.alpha.ast :as ast])
+             [clojure.java.io :as io]
+             ;[sf.substreams.v1 :as sf]
+             [spyglass.streamline.alpha.ast :as ast]
+             [protojure.protobuf :as protojure])
   (:use [infix.macros])
   (:gen-class))
 
@@ -14,7 +15,7 @@
 
 (def streamline-parser
   (insta/parser
-   "<S> = (module / struct-def)*
+   "<S> = (module / struct-def / interface-def)*
 
     lambda = <'('> identifier* <')'> <'=>'> ( (<'{'> expression* <'}'>) / (expression) )
     hof = parent-function <'('> identifier* <')'> <'=>'> ( (<'{'> expression* <'}'>) / (expression) )
@@ -35,6 +36,26 @@
     struct-def = <'struct'> identifier <'{'> (struct-field <';'>)* <'}'>
     struct-field = identifier <':'> (solidity-type / custom-type) ('[' ']')?
 
+    interface-def = <'interface'> identifier <'{'> ((event-def / function-def) <';'>)* <'}'>
+
+    event-def = <'event'> identifier <'('> event-param* <')'>
+    <event-param> = (non-indexed-event-param / indexed-event-param)
+    indexed-event-param = (solidity-type / custom-type) <'indexed'> identifier
+    non-indexed-event-param = (solidity-type / custom-type) identifier
+
+    <function-def> = (function-w-return / function-wo-return)
+    function-w-return = <'function'> identifier <'('> function-params <')'> <function-modifier*> returns
+    function-wo-return = <'function'> identifier <'('> function-params <')'> <function-modifier*>
+    function-params = function-param*
+    function-param = (solidity-type / custom-type) <location?> identifier
+    location = 'memory' / 'storage' / 'calldata'
+    function-modifier = visibility / mutability
+    visibility = 'public' / 'private' / 'internal' / 'external'
+    mutability = 'view' / 'pure'
+    returns = <'returns'> <'('> return-param* <')'>
+    <return-param> = unnamed-return
+    unnamed-return = (solidity-type / custom-type) <location?>
+
     solidity-type = 'address' / 'bool' / 'string' / 'bytes' / ('int' number?) / ('uint' number?);
     custom-type = identifier
 
@@ -43,72 +64,26 @@
     "
    :auto-whitespace :comma))
 
-(streamline-parser "
-struct Foo {
-    user: address;
-    balance: uint256;
-    something: Fart;
-}
-")
+(defn ast->file
+  "Converts a streamline parse tree into a StreamlineFile protobuf message"
+  [ast]
+  (let [modules (filter #(= (first %) :module) ast)
+        interfaces (filter #(= (first %) :interface-def) ast)
+        module-defs (map ->map-module modules)]
+    (ast/new-StreamlineFile {:modules module-defs
+                             :contracts (into [] (map ->abi interfaces))})))
 
-(def ast (streamline-parser "
-map pools_created:
-(Block,Transfer,SomethingElse) -> Pools {
- (block) => foo(bar);
- (block) => foo;
- (block) => foo(bar).baz;
- (block) => 42 + 12 + foo.bar;
-}
+(defn serialize-pb
+  "Serializes a protobuf message into a byte array"
+  [file]
+  (->> file
+       protojure/->pb
+       (into [])
+       byte-array))
 
-map something_else:
-(Block) -> Pools {
- (block) => logs(block);
- (block transfer) => logs(block);
- filter (block) => logs(block);
- map (block) => logs(block);
- map (transfer,foo) => logs(block);
-}
-"))
+(defn write-file [input path]
+  (with-open [o (io/output-stream path)]
+    (.write o input)))
 
-(second (map ->map-module ast))
-
-(ast/new-ModuleDef {:kind "map"
-                    :identifier "pools_created"
-                    :signature (ast/new-ModuleSignature {:inputs ["foo" "bar"]
-                                                         :output "baz"})})
-
-(defmulti eval-expr :expression-type)
-
-(defmethod eval-expr :identifier
-    [input]
-    (eval (symbol (:ident input))))
-
-(defmethod eval-expr :number
-    [input]
-    (Integer/parseInt (:number input)))
-
-(defmethod eval-expr :function-call
-    [input]
-    (let [function-name (:function-name input)
-          args (:args input)]
-        (apply (eval-expr function-name) (map eval-expr args))))
-
-(defmacro step->
-  "Like as->, but only performs the first COUNT forms"
-  [expr count & forms]
-  (let [forms (take count forms)]
-    `(->> ~expr ~@forms)))
-
-;; (defn module?
-;;   "Tests if an AST node is a module-def"
-;;   [node]
-;;   (= (first node) :module))
-
-
-;; (def modules (map ->map-module (rest ast)))
-
-;; (let [[_ type ident sig body] (first (rest ast))
-;;       [_ & lambdas] body]
-;;   (map hof? lambdas))
-
-;(->map-module (first  (rest ast)))
+(def ast (streamline-parser (slurp "streamline-test.strm")))
+(write-file (serialize-pb (ast->file ast)) "streamline-test.cstrm")

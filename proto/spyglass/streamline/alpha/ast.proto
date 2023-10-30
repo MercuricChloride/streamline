@@ -4,7 +4,46 @@ package spyglass.streamline.alpha.ast;
 
 message StreamlineFile {
     repeated TypeDeclaration types = 1;
-    repeated ModuleDef modules = 2;
+    repeated ContractAbi contracts = 2;
+    repeated ModuleDef modules = 3;
+}
+
+message ContractAbi {
+    string name = 1;
+    repeated EventAbi events = 2;
+    repeated FunctionAbi functions = 3;
+}
+
+message EventAbi {
+    string type = 1; // always "event"
+    string name = 2;
+    repeated EventInput inputs = 3;
+}
+
+message EventInput {
+    string type = 1;
+    string name = 2;
+    bool indexed = 3;
+    //optional Components components = 4;
+}
+
+message FunctionAbi {
+    string type = 1; // always "function"
+    string name = 2;
+    repeated FunctionInput inputs = 3;
+    repeated FunctionInput outputs = 4;
+    string state_mutability = 5;
+}
+
+message FunctionInput {
+    string name = 1;
+    string type = 2;
+    //optional Components components = 4;
+}
+
+message ContractFunctionParameter {
+    string name = 1;
+    string type = 2;
 }
 
 message TypeDeclaration {

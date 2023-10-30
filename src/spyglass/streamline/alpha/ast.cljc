@@ -18,6 +18,9 @@
 ;;----------------------------------------------------------------------------------
 ;;----------------------------------------------------------------------------------
 
+(declare cis->ContractFunctionParameter)
+(declare ecis->ContractFunctionParameter)
+(declare new-ContractFunctionParameter)
 (declare cis->TypeField)
 (declare ecis->TypeField)
 (declare new-TypeField)
@@ -30,9 +33,21 @@
 (declare cis->Expression)
 (declare ecis->Expression)
 (declare new-Expression)
+(declare cis->ContractAbi)
+(declare ecis->ContractAbi)
+(declare new-ContractAbi)
+(declare cis->FunctionAbi)
+(declare ecis->FunctionAbi)
+(declare new-FunctionAbi)
 (declare cis->Lambda)
 (declare ecis->Lambda)
 (declare new-Lambda)
+(declare cis->EventAbi)
+(declare ecis->EventAbi)
+(declare new-EventAbi)
+(declare cis->EventInput)
+(declare ecis->EventInput)
+(declare new-EventInput)
 (declare cis->StreamlineFile)
 (declare ecis->StreamlineFile)
 (declare new-StreamlineFile)
@@ -48,6 +63,9 @@
 (declare cis->Hof)
 (declare ecis->Hof)
 (declare new-Hof)
+(declare cis->FunctionInput)
+(declare ecis->FunctionInput)
+(declare new-FunctionInput)
 (declare cis->ModuleDef)
 (declare ecis->ModuleDef)
 (declare new-ModuleDef)
@@ -138,6 +156,57 @@
 ;; Message Implementations
 ;;----------------------------------------------------------------------------------
 ;;----------------------------------------------------------------------------------
+
+;-----------------------------------------------------------------------------
+; ContractFunctionParameter
+;-----------------------------------------------------------------------------
+(defrecord ContractFunctionParameter-record [name type]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:name this) os)
+    (serdes.core/write-String 2  {:optimize true} (:type this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.ContractFunctionParameter"))
+
+(s/def :spyglass.streamline.alpha.ast.ContractFunctionParameter/name string?)
+(s/def :spyglass.streamline.alpha.ast.ContractFunctionParameter/type string?)
+(s/def ::ContractFunctionParameter-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.ContractFunctionParameter/name :spyglass.streamline.alpha.ast.ContractFunctionParameter/type ]))
+(def ContractFunctionParameter-defaults {:name "" :type "" })
+
+(defn cis->ContractFunctionParameter
+  "CodedInputStream to ContractFunctionParameter"
+  [is]
+  (->> (tag-map ContractFunctionParameter-defaults
+         (fn [tag index]
+             (case index
+               1 [:name (serdes.core/cis->String is)]
+               2 [:type (serdes.core/cis->String is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->ContractFunctionParameter-record)))
+
+(defn ecis->ContractFunctionParameter
+  "Embedded CodedInputStream to ContractFunctionParameter"
+  [is]
+  (serdes.core/cis->embedded cis->ContractFunctionParameter is))
+
+(defn new-ContractFunctionParameter
+  "Creates a new instance from a map, similar to map->ContractFunctionParameter except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::ContractFunctionParameter-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::ContractFunctionParameter-spec init))))]}
+  (-> (merge ContractFunctionParameter-defaults init)
+      (map->ContractFunctionParameter-record)))
+
+(defn pb->ContractFunctionParameter
+  "Protobuf to ContractFunctionParameter"
+  [input]
+  (cis->ContractFunctionParameter (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record ContractFunctionParameter-meta {:type "spyglass.streamline.alpha.ast.ContractFunctionParameter" :decoder pb->ContractFunctionParameter})
 
 ;-----------------------------------------------------------------------------
 ; TypeField
@@ -342,6 +411,124 @@
 (def ^:protojure.protobuf.any/record Expression-meta {:type "spyglass.streamline.alpha.ast.Expression" :decoder pb->Expression})
 
 ;-----------------------------------------------------------------------------
+; ContractAbi
+;-----------------------------------------------------------------------------
+(defrecord ContractAbi-record [name events functions]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:name this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:events this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 3 (:functions this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.ContractAbi"))
+
+(s/def :spyglass.streamline.alpha.ast.ContractAbi/name string?)
+
+
+(s/def ::ContractAbi-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.ContractAbi/name ]))
+(def ContractAbi-defaults {:name "" :events [] :functions [] })
+
+(defn cis->ContractAbi
+  "CodedInputStream to ContractAbi"
+  [is]
+  (->> (tag-map ContractAbi-defaults
+         (fn [tag index]
+             (case index
+               1 [:name (serdes.core/cis->String is)]
+               2 [:events (serdes.complex/cis->repeated ecis->EventAbi is)]
+               3 [:functions (serdes.complex/cis->repeated ecis->FunctionAbi is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->ContractAbi-record)))
+
+(defn ecis->ContractAbi
+  "Embedded CodedInputStream to ContractAbi"
+  [is]
+  (serdes.core/cis->embedded cis->ContractAbi is))
+
+(defn new-ContractAbi
+  "Creates a new instance from a map, similar to map->ContractAbi except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::ContractAbi-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::ContractAbi-spec init))))]}
+  (-> (merge ContractAbi-defaults init)
+      (cond-> (some? (get init :events)) (update :events #(map new-EventAbi %)))
+      (cond-> (some? (get init :functions)) (update :functions #(map new-FunctionAbi %)))
+      (map->ContractAbi-record)))
+
+(defn pb->ContractAbi
+  "Protobuf to ContractAbi"
+  [input]
+  (cis->ContractAbi (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record ContractAbi-meta {:type "spyglass.streamline.alpha.ast.ContractAbi" :decoder pb->ContractAbi})
+
+;-----------------------------------------------------------------------------
+; FunctionAbi
+;-----------------------------------------------------------------------------
+(defrecord FunctionAbi-record [type name inputs outputs state-mutability]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:type this) os)
+    (serdes.core/write-String 2  {:optimize true} (:name this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 3 (:inputs this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 4 (:outputs this) os)
+    (serdes.core/write-String 5  {:optimize true} (:state-mutability this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.FunctionAbi"))
+
+(s/def :spyglass.streamline.alpha.ast.FunctionAbi/type string?)
+(s/def :spyglass.streamline.alpha.ast.FunctionAbi/name string?)
+
+
+(s/def :spyglass.streamline.alpha.ast.FunctionAbi/state-mutability string?)
+(s/def ::FunctionAbi-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.FunctionAbi/type :spyglass.streamline.alpha.ast.FunctionAbi/name :spyglass.streamline.alpha.ast.FunctionAbi/state-mutability ]))
+(def FunctionAbi-defaults {:type "" :name "" :inputs [] :outputs [] :state-mutability "" })
+
+(defn cis->FunctionAbi
+  "CodedInputStream to FunctionAbi"
+  [is]
+  (->> (tag-map FunctionAbi-defaults
+         (fn [tag index]
+             (case index
+               1 [:type (serdes.core/cis->String is)]
+               2 [:name (serdes.core/cis->String is)]
+               3 [:inputs (serdes.complex/cis->repeated ecis->FunctionInput is)]
+               4 [:outputs (serdes.complex/cis->repeated ecis->FunctionInput is)]
+               5 [:state-mutability (serdes.core/cis->String is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->FunctionAbi-record)))
+
+(defn ecis->FunctionAbi
+  "Embedded CodedInputStream to FunctionAbi"
+  [is]
+  (serdes.core/cis->embedded cis->FunctionAbi is))
+
+(defn new-FunctionAbi
+  "Creates a new instance from a map, similar to map->FunctionAbi except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::FunctionAbi-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::FunctionAbi-spec init))))]}
+  (-> (merge FunctionAbi-defaults init)
+      (cond-> (some? (get init :inputs)) (update :inputs #(map new-FunctionInput %)))
+      (cond-> (some? (get init :outputs)) (update :outputs #(map new-FunctionInput %)))
+      (map->FunctionAbi-record)))
+
+(defn pb->FunctionAbi
+  "Protobuf to FunctionAbi"
+  [input]
+  (cis->FunctionAbi (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record FunctionAbi-meta {:type "spyglass.streamline.alpha.ast.FunctionAbi" :decoder pb->FunctionAbi})
+
+;-----------------------------------------------------------------------------
 ; Lambda
 ;-----------------------------------------------------------------------------
 (defrecord Lambda-record [inputs body]
@@ -394,19 +581,129 @@
 (def ^:protojure.protobuf.any/record Lambda-meta {:type "spyglass.streamline.alpha.ast.Lambda" :decoder pb->Lambda})
 
 ;-----------------------------------------------------------------------------
+; EventAbi
+;-----------------------------------------------------------------------------
+(defrecord EventAbi-record [type name inputs]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:type this) os)
+    (serdes.core/write-String 2  {:optimize true} (:name this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 3 (:inputs this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.EventAbi"))
+
+(s/def :spyglass.streamline.alpha.ast.EventAbi/type string?)
+(s/def :spyglass.streamline.alpha.ast.EventAbi/name string?)
+
+(s/def ::EventAbi-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.EventAbi/type :spyglass.streamline.alpha.ast.EventAbi/name ]))
+(def EventAbi-defaults {:type "" :name "" :inputs [] })
+
+(defn cis->EventAbi
+  "CodedInputStream to EventAbi"
+  [is]
+  (->> (tag-map EventAbi-defaults
+         (fn [tag index]
+             (case index
+               1 [:type (serdes.core/cis->String is)]
+               2 [:name (serdes.core/cis->String is)]
+               3 [:inputs (serdes.complex/cis->repeated ecis->EventInput is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->EventAbi-record)))
+
+(defn ecis->EventAbi
+  "Embedded CodedInputStream to EventAbi"
+  [is]
+  (serdes.core/cis->embedded cis->EventAbi is))
+
+(defn new-EventAbi
+  "Creates a new instance from a map, similar to map->EventAbi except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::EventAbi-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::EventAbi-spec init))))]}
+  (-> (merge EventAbi-defaults init)
+      (cond-> (some? (get init :inputs)) (update :inputs #(map new-EventInput %)))
+      (map->EventAbi-record)))
+
+(defn pb->EventAbi
+  "Protobuf to EventAbi"
+  [input]
+  (cis->EventAbi (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record EventAbi-meta {:type "spyglass.streamline.alpha.ast.EventAbi" :decoder pb->EventAbi})
+
+;-----------------------------------------------------------------------------
+; EventInput
+;-----------------------------------------------------------------------------
+(defrecord EventInput-record [type name indexed]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:type this) os)
+    (serdes.core/write-String 2  {:optimize true} (:name this) os)
+    (serdes.core/write-Bool 3  {:optimize true} (:indexed this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.EventInput"))
+
+(s/def :spyglass.streamline.alpha.ast.EventInput/type string?)
+(s/def :spyglass.streamline.alpha.ast.EventInput/name string?)
+(s/def :spyglass.streamline.alpha.ast.EventInput/indexed boolean?)
+(s/def ::EventInput-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.EventInput/type :spyglass.streamline.alpha.ast.EventInput/name :spyglass.streamline.alpha.ast.EventInput/indexed ]))
+(def EventInput-defaults {:type "" :name "" :indexed false })
+
+(defn cis->EventInput
+  "CodedInputStream to EventInput"
+  [is]
+  (->> (tag-map EventInput-defaults
+         (fn [tag index]
+             (case index
+               1 [:type (serdes.core/cis->String is)]
+               2 [:name (serdes.core/cis->String is)]
+               3 [:indexed (serdes.core/cis->Bool is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->EventInput-record)))
+
+(defn ecis->EventInput
+  "Embedded CodedInputStream to EventInput"
+  [is]
+  (serdes.core/cis->embedded cis->EventInput is))
+
+(defn new-EventInput
+  "Creates a new instance from a map, similar to map->EventInput except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::EventInput-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::EventInput-spec init))))]}
+  (-> (merge EventInput-defaults init)
+      (map->EventInput-record)))
+
+(defn pb->EventInput
+  "Protobuf to EventInput"
+  [input]
+  (cis->EventInput (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record EventInput-meta {:type "spyglass.streamline.alpha.ast.EventInput" :decoder pb->EventInput})
+
+;-----------------------------------------------------------------------------
 ; StreamlineFile
 ;-----------------------------------------------------------------------------
-(defrecord StreamlineFile-record [types modules]
+(defrecord StreamlineFile-record [types contracts modules]
   pb/Writer
   (serialize [this os]
     (serdes.complex/write-repeated serdes.core/write-embedded 1 (:types this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:modules this) os))
+    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:contracts this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 3 (:modules this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.StreamlineFile"))
 
 (s/def ::StreamlineFile-spec (s/keys :opt-un []))
-(def StreamlineFile-defaults {:types [] :modules [] })
+(def StreamlineFile-defaults {:types [] :contracts [] :modules [] })
 
 (defn cis->StreamlineFile
   "CodedInputStream to StreamlineFile"
@@ -415,7 +712,8 @@
          (fn [tag index]
              (case index
                1 [:types (serdes.complex/cis->repeated ecis->TypeDeclaration is)]
-               2 [:modules (serdes.complex/cis->repeated ecis->ModuleDef is)]
+               2 [:contracts (serdes.complex/cis->repeated ecis->ContractAbi is)]
+               3 [:modules (serdes.complex/cis->repeated ecis->ModuleDef is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -434,6 +732,7 @@
   {:pre [(if (s/valid? ::StreamlineFile-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::StreamlineFile-spec init))))]}
   (-> (merge StreamlineFile-defaults init)
       (cond-> (some? (get init :types)) (update :types #(map new-TypeDeclaration %)))
+      (cond-> (some? (get init :contracts)) (update :contracts #(map new-ContractAbi %)))
       (cond-> (some? (get init :modules)) (update :modules #(map new-ModuleDef %)))
       (map->StreamlineFile-record)))
 
@@ -651,6 +950,57 @@
   (cis->Hof (serdes.stream/new-cis input)))
 
 (def ^:protojure.protobuf.any/record Hof-meta {:type "spyglass.streamline.alpha.ast.Hof" :decoder pb->Hof})
+
+;-----------------------------------------------------------------------------
+; FunctionInput
+;-----------------------------------------------------------------------------
+(defrecord FunctionInput-record [name type]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:name this) os)
+    (serdes.core/write-String 2  {:optimize true} (:type this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.FunctionInput"))
+
+(s/def :spyglass.streamline.alpha.ast.FunctionInput/name string?)
+(s/def :spyglass.streamline.alpha.ast.FunctionInput/type string?)
+(s/def ::FunctionInput-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.FunctionInput/name :spyglass.streamline.alpha.ast.FunctionInput/type ]))
+(def FunctionInput-defaults {:name "" :type "" })
+
+(defn cis->FunctionInput
+  "CodedInputStream to FunctionInput"
+  [is]
+  (->> (tag-map FunctionInput-defaults
+         (fn [tag index]
+             (case index
+               1 [:name (serdes.core/cis->String is)]
+               2 [:type (serdes.core/cis->String is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->FunctionInput-record)))
+
+(defn ecis->FunctionInput
+  "Embedded CodedInputStream to FunctionInput"
+  [is]
+  (serdes.core/cis->embedded cis->FunctionInput is))
+
+(defn new-FunctionInput
+  "Creates a new instance from a map, similar to map->FunctionInput except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::FunctionInput-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::FunctionInput-spec init))))]}
+  (-> (merge FunctionInput-defaults init)
+      (map->FunctionInput-record)))
+
+(defn pb->FunctionInput
+  "Protobuf to FunctionInput"
+  [input]
+  (cis->FunctionInput (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record FunctionInput-meta {:type "spyglass.streamline.alpha.ast.FunctionInput" :decoder pb->FunctionInput})
 
 ;-----------------------------------------------------------------------------
 ; ModuleDef
