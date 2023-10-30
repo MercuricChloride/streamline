@@ -117,9 +117,8 @@
 (defn convert-Literal-literal [origkeyval]
   (cond
      (get-in origkeyval [:literal :int]) origkeyval
-     (get-in origkeyval [:literal :float]) origkeyval
-     (get-in origkeyval [:literal :string]) origkeyval
-     (get-in origkeyval [:literal :bool]) origkeyval
+     (get-in origkeyval [:literal :str]) origkeyval
+     (get-in origkeyval [:literal :boolean]) origkeyval
      :default origkeyval))
 
 (defn write-Literal-literal [literal os]
@@ -128,9 +127,8 @@
         v (when-not (nil? field) (val field))]
      (case k
          :int (serdes.core/write-Int64 1  {:optimize false} v os)
-         :float (serdes.core/write-Double 2  {:optimize false} v os)
-         :string (serdes.core/write-String 3  {:optimize false} v os)
-         :bool (serdes.core/write-Bool 4  {:optimize false} v os)
+         :str (serdes.core/write-String 2  {:optimize false} v os)
+         :boolean (serdes.core/write-Bool 3  {:optimize false} v os)
          nil)))
 
 
@@ -246,19 +244,15 @@
 ;-----------------------------------------------------------------------------
 ; BinaryOp
 ;-----------------------------------------------------------------------------
-(defrecord BinaryOp-record [op lhs rhs]
+(defrecord BinaryOp-record [op]
   pb/Writer
   (serialize [this os]
-    (serdes.core/write-String 1  {:optimize true} (:op this) os)
-    (serdes.core/write-embedded 2 (:lhs this) os)
-    (serdes.core/write-embedded 3 (:rhs this) os))
+    (serdes.core/write-String 1  {:optimize true} (:op this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.BinaryOp"))
 
 (s/def :spyglass.streamline.alpha.ast.BinaryOp/op string?)
-
-
 (s/def ::BinaryOp-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.BinaryOp/op ]))
 (def BinaryOp-defaults {:op "" })
 
@@ -269,8 +263,6 @@
          (fn [tag index]
              (case index
                1 [:op (serdes.core/cis->String is)]
-               2 [:lhs (ecis->Expression is)]
-               3 [:rhs (ecis->Expression is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -288,8 +280,6 @@
   [init]
   {:pre [(if (s/valid? ::BinaryOp-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::BinaryOp-spec init))))]}
   (-> (merge BinaryOp-defaults init)
-      (cond-> (some? (get init :lhs)) (update :lhs new-Expression))
-      (cond-> (some? (get init :rhs)) (update :rhs new-Expression))
       (map->BinaryOp-record)))
 
 (defn pb->BinaryOp
@@ -358,15 +348,15 @@
   pb/Writer
   (serialize [this os]
     (serdes.complex/write-repeated serdes.core/write-String 1 (:inputs this) os)
-    (serdes.core/write-String 2  {:optimize true} (:body this) os))
+    (serdes.core/write-embedded 2 (:body this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.Lambda"))
 
 (s/def :spyglass.streamline.alpha.ast.Lambda/inputs (s/every string?))
-(s/def :spyglass.streamline.alpha.ast.Lambda/body string?)
-(s/def ::Lambda-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.Lambda/inputs :spyglass.streamline.alpha.ast.Lambda/body ]))
-(def Lambda-defaults {:inputs [] :body "" })
+
+(s/def ::Lambda-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.Lambda/inputs ]))
+(def Lambda-defaults {:inputs [] })
 
 (defn cis->Lambda
   "CodedInputStream to Lambda"
@@ -375,7 +365,7 @@
          (fn [tag index]
              (case index
                1 [:inputs (serdes.complex/cis->repeated serdes.core/cis->String is)]
-               2 [:body (serdes.core/cis->String is)]
+               2 [:body (ecis->Expression is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -393,6 +383,7 @@
   [init]
   {:pre [(if (s/valid? ::Lambda-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::Lambda-spec init))))]}
   (-> (merge Lambda-defaults init)
+      (cond-> (some? (get init :body)) (update :body new-Expression))
       (map->Lambda-record)))
 
 (defn pb->Lambda
@@ -609,19 +600,21 @@
 ;-----------------------------------------------------------------------------
 ; Hof
 ;-----------------------------------------------------------------------------
-(defrecord Hof-record [parent callback]
+(defrecord Hof-record [parent inputs body]
   pb/Writer
   (serialize [this os]
     (serdes.core/write-String 1  {:optimize true} (:parent this) os)
-    (serdes.core/write-embedded 2 (:callback this) os))
+    (serdes.complex/write-repeated serdes.core/write-String 2 (:inputs this) os)
+    (serdes.core/write-embedded 3 (:body this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.Hof"))
 
 (s/def :spyglass.streamline.alpha.ast.Hof/parent string?)
+(s/def :spyglass.streamline.alpha.ast.Hof/inputs (s/every string?))
 
-(s/def ::Hof-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.Hof/parent ]))
-(def Hof-defaults {:parent "" })
+(s/def ::Hof-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.Hof/parent :spyglass.streamline.alpha.ast.Hof/inputs ]))
+(def Hof-defaults {:parent "" :inputs [] })
 
 (defn cis->Hof
   "CodedInputStream to Hof"
@@ -630,7 +623,8 @@
          (fn [tag index]
              (case index
                1 [:parent (serdes.core/cis->String is)]
-               2 [:callback (ecis->Lambda is)]
+               2 [:inputs (serdes.complex/cis->repeated serdes.core/cis->String is)]
+               3 [:body (ecis->Expression is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -648,7 +642,7 @@
   [init]
   {:pre [(if (s/valid? ::Hof-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::Hof-spec init))))]}
   (-> (merge Hof-defaults init)
-      (cond-> (some? (get init :callback)) (update :callback new-Lambda))
+      (cond-> (some? (get init :body)) (update :body new-Expression))
       (map->Hof-record)))
 
 (defn pb->Hof
@@ -789,9 +783,8 @@
          (fn [tag index]
              (case index
                1 [:literal {:int (serdes.core/cis->Int64 is)}]
-               2 [:literal {:float (serdes.core/cis->Double is)}]
-               3 [:literal {:string (serdes.core/cis->String is)}]
-               4 [:literal {:bool (serdes.core/cis->Bool is)}]
+               2 [:literal {:str (serdes.core/cis->String is)}]
+               3 [:literal {:boolean (serdes.core/cis->Bool is)}]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)

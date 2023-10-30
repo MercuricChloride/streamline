@@ -4,6 +4,7 @@
              [clojure.java.io]
              [sf.substreams.v1 :as sf]
              [spyglass.streamline.alpha.ast :as ast])
+  (:use [infix.macros])
   (:gen-class))
 
 (defn -main
@@ -13,35 +14,46 @@
 
 (def streamline-parser
   (insta/parser
-   ;"S = (module*)
-   "S = module*
+   "<S> = (module / struct-def)*
 
-    lambda = [parent-function] <'('> identifier* <')'> <'=>'> ( (<'{'> expression* <'}'>) / (expression) )
-    parent-function = ('filter' / 'map' / 'reduce' / 'apply')
+    lambda = <'('> identifier* <')'> <'=>'> ( (<'{'> expression* <'}'>) / (expression) )
+    hof = parent-function <'('> identifier* <')'> <'=>'> ( (<'{'> expression* <'}'>) / (expression) )
+    <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
+    <pipeline> = ((lambda / hof) <';'>)*
 
-    expression = (function-call / binary-expression / field-access / identifier / number)
+    <expression> = (function-call / binary-expression / field-access / expr-ident / number)
+    expr-ident = identifier
     function-call = expression <'('> expression* <')'>
     binary-op = ('+' / '-' / '*' / '/' / '==' / '!=' / '<' / '>' / '<=' / '>=' / '&&' / '||' / '!')
     binary-expression = expression binary-op expression
     field-access = expression (<'.'> identifier)+
 
-    module = module-type identifier <':'> module-signature <'{'> module-body  <'}'>
-    module-type = 'map' | 'store'
+    module = module-type identifier <':'> module-signature <'{'> pipeline  <'}'>
+    <module-type> = 'map' | 'store'
     module-signature = <'('> identifier* <')'> <'->'> identifier
-    module-body = (lambda <';'>)*
 
-    struct-def = 'struct' identifier <'{'> struct-body <'}'>
-    struct-body = (struct-field <';'>)*
-    struct-field = identifier <':'> identifier
+    struct-def = <'struct'> identifier <'{'> (struct-field <';'>)* <'}'>
+    struct-field = identifier <':'> (solidity-type / custom-type) ('[' ']')?
 
-    identifier = #'[a-zA-Z_][a-zA-Z0-9_]*'
-    number = #'[0-9]+'
+    solidity-type = 'address' / 'bool' / 'string' / 'bytes' / ('int' number?) / ('uint' number?);
+    custom-type = identifier
+
+    <identifier> = #'[a-zA-Z_][a-zA-Z0-9_]*'
+    <number> = #'[0-9]+'
     "
    :auto-whitespace :comma))
 
+(streamline-parser "
+struct Foo {
+    user: address;
+    balance: uint256;
+    something: Fart;
+}
+")
+
 (def ast (streamline-parser "
 map pools_created:
-(Block) -> Pools {
+(Block,Transfer,SomethingElse) -> Pools {
  (block) => foo(bar);
  (block) => foo;
  (block) => foo(bar).baz;
@@ -51,54 +63,41 @@ map pools_created:
 map something_else:
 (Block) -> Pools {
  (block) => logs(block);
+ (block transfer) => logs(block);
  filter (block) => logs(block);
  map (block) => logs(block);
  map (transfer,foo) => logs(block);
 }
 "))
 
-(def test-fns
-   ; this gets us the expression of the lambda
-    (map :body (map ->function (->> ast
-        rest
-        first
-        last
-        rest))))
+(second (map ->map-module ast))
 
-(defmulti ->expr first)
+(ast/new-ModuleDef {:kind "map"
+                    :identifier "pools_created"
+                    :signature (ast/new-ModuleSignature {:inputs ["foo" "bar"]
+                                                         :output "baz"})})
 
-(defmethod ->expr :function-call
+(defmulti eval-expr :expression-type)
+
+(defmethod eval-expr :identifier
     [input]
-    (let [[_ & input] input
-          [[_ function] & args] input
-          args (->> args
-                    (map second)
-                    (map ->expr))]
-        
-      {:function-name function
-       :args (into [] args)}))
+    (eval (symbol (:ident input))))
 
-(defmethod ->expr :binary-expression
+(defmethod eval-expr :number
     [input]
-    input)
+    (Integer/parseInt (:number input)))
 
-(defmethod ->expr :field-access
+(defmethod eval-expr :function-call
     [input]
-    (let [[_ & input] input
-          [[_ identifier] field] input]
-      {:field-accessor (->expr identifier)
-       :field (->expr field)}))
+    (let [function-name (:function-name input)
+          args (:args input)]
+        (apply (eval-expr function-name) (map eval-expr args))))
 
-(defmethod ->expr :identifier
-    [input]
-    {:ident (second input)})
-
-(defmethod ->expr :number
-    [input]
-    {:number (second input)})
-
-(map ->expr test-fns)
-
+(defmacro step->
+  "Like as->, but only performs the first COUNT forms"
+  [expr count & forms]
+  (let [forms (take count forms)]
+    `(->> ~expr ~@forms)))
 
 ;; (defn module?
 ;;   "Tests if an AST node is a module-def"

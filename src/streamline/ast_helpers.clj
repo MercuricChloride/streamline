@@ -1,67 +1,70 @@
-(ns streamline.ast-helpers)
+(ns streamline.ast-helpers
+  (:require [spyglass.streamline.alpha.ast :as ast]))
 
-(defn hof?
-  "Returns if a function is a higher-order fn"
+(defmulti ->expr
+  "Converts a expression into an expression node" first)
+
+(defmethod ->expr :function-call
+  [input]
+  (let [[_ & input] input
+        [[_ function] & args] input]
+    {:expression {:function-call {:identifier function
+                                 :arguments (map ->expr args)}}}))
+
+
+(defmethod ->expr :binary-expression
+  [input]
+  {:expression {:binary-expression {:op input}}})
+
+(defmethod ->expr :field-access
+  [input]
+  (let [[_ & input] input
+        [[_ identifier] field] input]
+    {:expression {:field-access {
+                              :target (->expr identifier)
+                              :field (str field)}}}))
+
+(defmethod ->expr :expr-ident
+  [input]
+  {:expression {:identifier (second input)}})
+
+(defmethod ->expr :number
+  [input]
+  {:expression {:literal {:int (str (second input))}}})
+
+(defmulti ->function first)
+
+(defmethod ->function :lambda
   [input]
   (let [[_ & lambda] input
-       [lambda-type] (first lambda)]
-       (= lambda-type :parent-function)))
+        inputs (into [] (butlast lambda))
+        expression (last lambda)]
+    {:function {:lambda {:inputs inputs
+                         :body {:expression (->expr expression)}}}}))
 
-(defn ->expression
-  "Converts an expression into an expression syntax node"
+(defmethod ->function :hof
   [input]
-)
-
-(defn ->function
-  "Converts a syntax node into a function ast node.
-  Either a lambda or a higher order function"
-  ([input]
-    (if (hof? input)
-      (let [[_ & lambda] input
-            lambda-body (subvec (vec lambda) 1)
-            [_ parent-fn] (first lambda)
-            inputs (vec (butlast lambda-body))
-            body (last lambda-body)]
-        (->function parent-fn inputs body))
-      (let [[_ & lambda] input
-            inputs (butlast lambda)
-            body (second (last lambda))]
-        (->function inputs body))))
-
-  ([inputs body] ; NOTE Case where lambda is not the input to a higher-order fn
-   {:expression-type "lambda"
-    :inputs (vec (map second inputs))
-    :body body})
-
-  ([parent-fn inputs body] ; NOTE Case where lambda is the input to a higher-order fn
-   {:expression-type "hof"
-    :parent parent-fn
-    :callback (->function inputs body)}))
-
-(defn ->module-body
-  "Returns an AST node for the body of a module"
-  [input]
-  (into [] (map ->function input)))
+  (let [[_ parent-fn & lambda] input
+        inputs (into [] (butlast lambda))
+        expression (last lambda)]
+    {:function {:hof {:parent parent-fn
+                      :inputs inputs
+                      :body {:expression (->expr expression)}}}}))
 
 (defn ->module-signature
   [input]
-  (let [idents (map second input)
+  (let [[_ & idents] input
         inputs (butlast idents)
         output (last idents)]
-    {:inputs (into [] inputs)
-     :output output}))
+    (ast/new-ModuleSignature {:inputs (into [] inputs)
+                              :output output})))
 
 (defn ->map-module
   "Returns an AST node for a module definition"
   [input]
-  (let [[type ident signature body] (rest input)
-        [_ type] type
-        [_ ident] ident
-        [_ & signature] signature
-        [_ & body] body]
-    {:node-type "module-def"
-     :type type
-     :name ident
-     :signature (->module-signature signature)
-     :pipeline (->module-body body)
-     }))
+  (let [[type ident signature & pipeline] (rest input)]
+    (println pipeline)
+    (ast/new-ModuleDef {:kind type
+                        :identifier ident
+                        :signature (->module-signature signature)
+                        :pipeline (map ->function pipeline)})))
