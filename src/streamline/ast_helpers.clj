@@ -75,56 +75,72 @@
 (defmethod ->abi :function-w-return
   [input]
   (let [[_ name [_ & params] [_ & returns]] input]
-    (ast/new-FunctionAbi {:type "function"
+    ;(ast/new-FunctionAbi
+    {:type "function"
                           :name name
                           :inputs (into [] (map ->abi params))
                           :outputs (into [] (map ->abi returns))
-                          :state-mutability "nonpayable"})))
+                          :state-mutability "nonpayable"}))
+;)
 
 (defmethod ->abi :function-wo-return
   [input]
   (let [[_ name [_ & params]] input]
-    (ast/new-FunctionAbi {:type "function"
+    ;(ast/new-FunctionAbi
+{:type "function"
                           :name name
                           :inputs (into [] (map ->abi params))
                           :outputs []
-                          :state-mutability "nonpayable"})))
+                          :state-mutability "nonpayable"}))
+;)
 
 (defmethod ->abi :function-param
   [input]
   (let [[_ [_ & type-parts] name] input
         type (reduce str type-parts)]
-    (ast/new-FunctionInput {:type type
-                            :name name})))
+    ;(ast/new-FunctionInput
+{:type type
+                            :name name}))
+;)
 
 (defmethod ->abi :unnamed-return
   [input]
   (let [[_ [_ & type-parts]] input
         type (reduce str type-parts)]
-    (ast/new-FunctionInput {:type type})))
+    ;(ast/new-FunctionInput
+ {:type type
+  :name ""}))
+;)
 
 (defmethod ->abi :event-def
   [input]
   (let [[_ name & params] input]
-    (ast/new-EventAbi {:type "event"
-                       :name name
-                       :inputs (into [] (map ->abi params))})))
+    ;(ast/new-EventAbi
+    {:type "event"
+     :name name
+     :inputs (into [] (map ->abi params))
+     :anonymous false}))
+;)
 
 (defmethod ->abi :indexed-event-param
   [input]
   (let [[_ [_ & type-parts] name] input
         type (reduce str type-parts)]
-    (ast/new-EventInput {:type type
-                         :name name
-                         :indexed true})))
+    ;(ast/new-EventInput
+      {:type type
+       :name name
+       :indexed true}))
+;)
 
 (defmethod ->abi :non-indexed-event-param
   [input]
   (let [[_ [_ & type-parts] name] input
         type (reduce str type-parts)]
-    (ast/new-EventInput {:type type
+    ;(ast/new-EventInput
+{:type type
                          :name name
-                         :indexed false})))
+                         :indexed false}))
+;)
 
 (defn function-def? [input]
   (or (= (first input) :function-w-return)
@@ -135,6 +151,10 @@
   (let [[_ name & items] input
         events (filter #(= (first %) :event-def) items)
         functions (filter function-def? items)]
-                          (ast/new-ContractAbi {:name name
-                           :functions (into [] (map ->abi functions))
-                           :events (into [] (map ->abi events))})))
+                          ;(ast/new-ContractAbi
+     (into [] (flatten [(map ->abi events) (map ->abi functions)]))))
+;; {:name name
+;;                            :functions (into [] (map ->abi functions))
+;;                            :events (into [] (map ->abi events))}
+;;))
+;)

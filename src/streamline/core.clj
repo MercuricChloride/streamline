@@ -3,6 +3,7 @@
              [streamline.ast-helpers :refer :all]
              [clojure.java.io :as io]
              ;[sf.substreams.v1 :as sf]
+             [clojure.data.json :as json]
              [spyglass.streamline.alpha.ast :as ast]
              [protojure.protobuf :as protojure])
   (:use [infix.macros])
@@ -71,7 +72,8 @@
         interfaces (filter #(= (first %) :interface-def) ast)
         module-defs (map ->map-module modules)]
     (ast/new-StreamlineFile {:modules module-defs
-                             :contracts (into [] (map ->abi interfaces))})))
+                             ;; :contracts (into [] (map ->abi interfaces))
+                             })))
 
 (defn serialize-pb
   "Serializes a protobuf message into a byte array"
@@ -85,5 +87,8 @@
   (with-open [o (io/output-stream path)]
     (.write o input)))
 
-(def ast (streamline-parser (slurp "streamline-test.strm")))
-(write-file (serialize-pb (ast->file ast)) "streamline-test.cstrm")
+;(def ast (streamline-parser (slurp "streamline-test.strm")))
+
+;(def interface (first (map ->abi (filter #(= (first %) :interface-def) ast))))
+
+;(spit "interface.json" (json/write-str interface))
