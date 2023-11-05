@@ -1,11 +1,11 @@
 (ns streamline.core
   (:require [instaparse.core :as insta]
-             [streamline.ast-helpers :refer :all]
-             [clojure.java.io :as io]
+            [streamline.ast-helpers :refer :all]
+            [clojure.java.io :as io]
              ;[sf.substreams.v1 :as sf]
-             [clojure.data.json :as json]
-             [spyglass.streamline.alpha.ast :as ast]
-             [protojure.protobuf :as protojure])
+            [clojure.data.json :as json]
+            [spyglass.streamline.alpha.ast :as ast]
+            [protojure.protobuf :as protojure])
   (:use [infix.macros])
   (:gen-class))
 
@@ -18,12 +18,12 @@
   (insta/parser
    "<S> = (module / struct-def / interface-def)*
 
-    lambda = <'('> identifier* <')'> <'=>'> ( (<'{'> expression* <'}'>) / (expression) )
-    hof = parent-function <'('> identifier* <')'> <'=>'> ( (<'{'> expression* <'}'>) / (expression) )
+    lambda = <'('> identifier* <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
+    hof = parent-function <'('> identifier* <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
     <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
-    <pipeline> = ((lambda / hof) <';'>)*
+    <pipeline> = (lambda / hof)*
 
-    <expression> = (function-call / binary-expression / field-access / expr-ident / number)
+    <expression> = (number / string / function-call / binary-expression / field-access / expr-ident )
     expr-ident = identifier
     function-call = expression <'('> expression* <')'>
     binary-op = ('+' / '-' / '*' / '/' / '==' / '!=' / '<' / '>' / '<=' / '>=' / '&&' / '||' / '!')
@@ -32,7 +32,10 @@
 
     module = module-type identifier <':'> module-signature <'{'> pipeline  <'}'>
     <module-type> = 'map' | 'store'
-    module-signature = <'('> identifier* <')'> <'->'> identifier
+    module-signature = map-module-signature / store-module-signature
+    <map-module-signature> = <'('> (identifier array?)* <')'> <'->'> (identifier array?)
+    <store-module-signature> = <'('> (identifier array?)* <')'> <'->'> store-update-policy
+    <store-update-policy> = ('Set' / 'SetNotExists' / 'Add' / 'Min' / 'Max') <'('> (identifier array?) <')'>
 
     struct-def = <'struct'> identifier <'{'> (struct-field <';'>)* <'}'>
     struct-field = identifier <':'> (solidity-type / custom-type) ('[' ']')?
@@ -57,23 +60,18 @@
     <return-param> = unnamed-return
     unnamed-return = (solidity-type / custom-type) <location?>
 
-    solidity-type = 'address' / 'bool' / 'string' / 'bytes' / ('int' number?) / ('uint' number?);
+    type = solidity-type / custom-type
+    <solidity-type> = 'address' / 'bool' / 'string' / 'bytes' / ('int' number?) / ('uint' number?);
     custom-type = identifier
 
     <identifier> = #'[a-zA-Z_][a-zA-Z0-9_]*'
-    <number> = #'[0-9]+'
+    <silent-number> = #'[0-9]+'
+    number = #'[0-9]+'
+    string = <'\"'> #'[^\"\\n]*' <'\"'>
+    boolean = 'true' / 'false'
+    array = <'['> <']'>
     "
    :auto-whitespace :comma))
-
-(defn ast->file
-  "Converts a streamline parse tree into a StreamlineFile protobuf message"
-  [ast]
-  (let [modules (filter #(= (first %) :module) ast)
-        interfaces (filter #(= (first %) :interface-def) ast)
-        module-defs (map ->map-module modules)]
-    (ast/new-StreamlineFile {:modules module-defs
-                             ;; :contracts (into [] (map ->abi interfaces))
-                             })))
 
 (defn serialize-pb
   "Serializes a protobuf message into a byte array"
@@ -87,8 +85,35 @@
   (with-open [o (io/output-stream path)]
     (.write o input)))
 
-;(def ast (streamline-parser (slurp "streamline-test.strm")))
+(defn interface->abijson
+  "Converts an interface definition into an ABI JSON string"
+  [interface]
+  (let [events (:events interface)
+        functions (:functions interface)]
+    (->> (concat events functions)
+         (into [])
+         (json/write-str))))
 
-;(def interface (first (map ->abi (filter #(= (first %) :interface-def) ast))))
+(defn ast->file
+  "Converts a streamline parse tree into a StreamlineFile protobuf message"
+  [ast]
+  (let [modules (filter #(= (first %) :module) ast)
+        interfaces (filter #(= (first %) :interface-def) ast)
+        module-defs (map ->map-module modules)
+        interfaces (into [] (map ->abi interfaces))
+        abi-json (into [] (map #(interface->abijson %) interfaces))]
+    (ast/new-StreamlineFile {:modules module-defs
+                             :contracts interfaces
+                             :abi-json abi-json})))
+                             
+
+(def ast (streamline-parser (slurp "streamline-test.strm")))
+
+(def ast-file (protojure/->pb (ast->file ast)))
+(write-file ast-file "streamline-test.cstrm")
+
+(def interface (first (map ->abi (filter #(= (first %) :interface-def) ast))))
+
+;(interface->abijson interface)
 
 ;(spit "interface.json" (json/write-str interface))

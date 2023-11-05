@@ -22,6 +22,11 @@
   (let [forms (take count forms)]
     `(->> ~expr ~@forms)))
 
+(step-> [1 2 3 4] 1
+        (map inc)
+        (filter even?)
+        (map inc))
+
 ;; (defn module?
 ;;   "Tests if an AST node is a module-def"
 ;;   [node]

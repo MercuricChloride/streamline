@@ -1,6 +1,9 @@
 (ns streamline.ast-helpers
   (:require [spyglass.streamline.alpha.ast :as ast]))
 
+(defn parse-int [s]
+  (Integer/parseInt (re-find #"\A-?\d+" s)))
+
 (defmulti ->expr
   "Converts a expression into an expression node" first)
 
@@ -9,8 +12,7 @@
   (let [[_ & input] input
         [[_ function] & args] input]
     (ast/new-Expression {:expression {:function-call {:identifier function
-                                 :arguments (map ->expr args)}}})))
-
+                                                      :arguments (map ->expr args)}}})))
 
 (defmethod ->expr :binary-expression
   [input]
@@ -19,10 +21,9 @@
 (defmethod ->expr :field-access
   [input]
   (let [[_ & input] input
-        [[_ identifier] field] input]
-    (ast/new-Expression {:expression {:field-access {
-                              :target (->expr identifier)
-                              :field (str field)}}})))
+        [identifier field] input]
+    (ast/new-Expression {:expression {:field-access {:target (->expr identifier)
+                                                     :field (str field)}}})))
 
 (defmethod ->expr :expr-ident
   [input]
@@ -30,7 +31,21 @@
 
 (defmethod ->expr :number
   [input]
-  (ast/new-Expression {:expression {:literal {:int (str (second input))}}}))
+  (ast/new-Expression {:expression {:literal {:literal {:int (parse-int (second input))}}}}))
+
+(defmethod ->expr :string
+  [input]
+  (ast/new-Expression {:expression {:literal {:literal {:str (second input)}}}}))
+
+(defn eval-bool [s]
+  (cond
+    (= s "true") true
+    (= s "false") false
+    :else (throw (Exception. (str "Invalid boolean value: " s)))))
+
+(defmethod ->expr :boolean
+  [input]
+  (ast/new-Expression {:expression {:literal {:literal {:boolean (eval-bool (second input))}}}}))
 
 (defmulti ->function first)
 
@@ -39,17 +54,17 @@
   (let [[_ & lambda] input
         inputs (into [] (butlast lambda))
         expression (last lambda)]
-    {:function {:lambda {:inputs inputs
-                         :body {:expression (->expr expression)}}}}))
+    (ast/new-Function {:function {:lambda {:inputs inputs
+                                           :body (->expr expression)}}})))
 
 (defmethod ->function :hof
   [input]
   (let [[_ parent-fn & lambda] input
         inputs (into [] (butlast lambda))
         expression (last lambda)]
-    {:function {:hof {:parent parent-fn
+    (ast/new-Function {:function {:hof {:parent parent-fn
                       :inputs inputs
-                      :body {:expression (->expr expression)}}}}))
+                      :body (->expr expression)}}})))
 
 (defn ->module-signature
   [input]
@@ -77,70 +92,64 @@
   (let [[_ name [_ & params] [_ & returns]] input]
     ;(ast/new-FunctionAbi
     {:type "function"
-                          :name name
-                          :inputs (into [] (map ->abi params))
-                          :outputs (into [] (map ->abi returns))
-                          :state-mutability "nonpayable"}))
+     :name name
+     :inputs (into [] (map ->abi params))
+     :outputs (into [] (map ->abi returns))
+     :state-mutability "nonpayable"}))
 ;)
 
 (defmethod ->abi :function-wo-return
   [input]
   (let [[_ name [_ & params]] input]
-    ;(ast/new-FunctionAbi
-{:type "function"
-                          :name name
-                          :inputs (into [] (map ->abi params))
-                          :outputs []
-                          :state-mutability "nonpayable"}))
-;)
+    (ast/new-FunctionAbi
+     {:type "function"
+      :name name
+      :inputs (into [] (map ->abi params))
+      :outputs []
+      :state-mutability "nonpayable"})))
 
 (defmethod ->abi :function-param
   [input]
   (let [[_ [_ & type-parts] name] input
         type (reduce str type-parts)]
-    ;(ast/new-FunctionInput
-{:type type
-                            :name name}))
-;)
+    (ast/new-FunctionInput
+     {:type type
+      :name name})))
 
 (defmethod ->abi :unnamed-return
   [input]
   (let [[_ [_ & type-parts]] input
         type (reduce str type-parts)]
-    ;(ast/new-FunctionInput
- {:type type
-  :name ""}))
-;)
+    (ast/new-FunctionInput
+     {:type type
+      :name ""})))
 
 (defmethod ->abi :event-def
   [input]
   (let [[_ name & params] input]
-    ;(ast/new-EventAbi
-    {:type "event"
-     :name name
-     :inputs (into [] (map ->abi params))
-     :anonymous false}))
-;)
+    (ast/new-EventAbi
+     {:type "event"
+      :name name
+      :inputs (into [] (map ->abi params))
+      :anonymous false})))
 
 (defmethod ->abi :indexed-event-param
   [input]
   (let [[_ [_ & type-parts] name] input
         type (reduce str type-parts)]
-    ;(ast/new-EventInput
-      {:type type
-       :name name
-       :indexed true}))
-;)
+    (ast/new-EventInput
+     {:type type
+      :name name
+      :indexed true})))
 
 (defmethod ->abi :non-indexed-event-param
   [input]
   (let [[_ [_ & type-parts] name] input
         type (reduce str type-parts)]
-    ;(ast/new-EventInput
-{:type type
-                         :name name
-                         :indexed false}))
-;)
+    (ast/new-EventInput
+     {:type type
+      :name name
+      :indexed false})))
 
 (defn function-def? [input]
   (or (= (first input) :function-w-return)
@@ -151,10 +160,8 @@
   (let [[_ name & items] input
         events (filter #(= (first %) :event-def) items)
         functions (filter function-def? items)]
-                          ;(ast/new-ContractAbi
-     (into [] (flatten [(map ->abi events) (map ->abi functions)]))))
-;; {:name name
-;;                            :functions (into [] (map ->abi functions))
-;;                            :events (into [] (map ->abi events))}
-;;))
-;)
+    (ast/new-ContractAbi
+     {:name name
+      :functions (into [] (map ->abi functions))
+      :events (into [] (map ->abi events))})))
+     ;(into [] (flatten [(map ->abi events) (map ->abi functions)]))))

@@ -1,0 +1,46 @@
+interface Foo {
+    event Transfer(address indexed from, address to, uint256 tokenId);
+    event Bid(uint256 marketId);
+
+    function foo(uint256 bar) public returns (uint256);
+}
+
+struct Zap {
+    user: address;
+    balance: uint256;
+}
+
+struct Bar {
+    user: address;
+    balance: uint256;
+}
+
+map super_simple:
+(Block) -> Transfer {
+ (block) => 42;
+ (num) => "Streamline";
+ (foo) => 42+42+69;
+}
+
+map transfers:
+(Block) -> Transfer {
+ (block) => block.logs;
+ filter (log) => log.address == BAYC_ADDRESS;
+ map (log) => match_decode(Foo.Transfer, log);
+}
+
+map something_else:
+(Transfer) -> Pools {
+ (block) => foo(block);
+ filter (block) => logs(block);
+ map (block) => logs(block);
+ map (transfer foo) => logs(block);
+}
+
+map another_one:
+(Block) -> Pools {
+ (block) => logs(block);
+ filter (block) => logs(block);
+ map (block) => logs(block);
+ map (transfer,foo) => logs(block);
+}

@@ -9,6 +9,7 @@
             [protojure.protobuf.serdes.complex :as serdes.complex]
             [protojure.protobuf.serdes.utils :refer [tag-map]]
             [protojure.protobuf.serdes.stream :as serdes.stream]
+            [sf.substreams.v1 :as sf.substreams.v1]
             [clojure.set :as set]
             [clojure.spec.alpha :as s]))
 
@@ -692,18 +693,20 @@
 ;-----------------------------------------------------------------------------
 ; StreamlineFile
 ;-----------------------------------------------------------------------------
-(defrecord StreamlineFile-record [types contracts modules]
+(defrecord StreamlineFile-record [types contracts modules abi-json]
   pb/Writer
   (serialize [this os]
     (serdes.complex/write-repeated serdes.core/write-embedded 1 (:types this) os)
     (serdes.complex/write-repeated serdes.core/write-embedded 2 (:contracts this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 3 (:modules this) os))
+    (serdes.complex/write-repeated serdes.core/write-embedded 3 (:modules this) os)
+    (serdes.complex/write-repeated serdes.core/write-String 4 (:abi-json this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.StreamlineFile"))
 
-(s/def ::StreamlineFile-spec (s/keys :opt-un []))
-(def StreamlineFile-defaults {:types [] :contracts [] :modules [] })
+(s/def :spyglass.streamline.alpha.ast.StreamlineFile/abi-json (s/every string?))
+(s/def ::StreamlineFile-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StreamlineFile/abi-json ]))
+(def StreamlineFile-defaults {:types [] :contracts [] :modules [] :abi-json [] })
 
 (defn cis->StreamlineFile
   "CodedInputStream to StreamlineFile"
@@ -714,6 +717,7 @@
                1 [:types (serdes.complex/cis->repeated ecis->TypeDeclaration is)]
                2 [:contracts (serdes.complex/cis->repeated ecis->ContractAbi is)]
                3 [:modules (serdes.complex/cis->repeated ecis->ModuleDef is)]
+               4 [:abi-json (serdes.complex/cis->repeated serdes.core/cis->String is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
