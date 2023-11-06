@@ -414,21 +414,23 @@
 ;-----------------------------------------------------------------------------
 ; ContractAbi
 ;-----------------------------------------------------------------------------
-(defrecord ContractAbi-record [name events functions]
+(defrecord ContractAbi-record [name abi-json events functions]
   pb/Writer
   (serialize [this os]
     (serdes.core/write-String 1  {:optimize true} (:name this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:events this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 3 (:functions this) os))
+    (serdes.core/write-String 2  {:optimize true} (:abi-json this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 3 (:events this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 4 (:functions this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.ContractAbi"))
 
 (s/def :spyglass.streamline.alpha.ast.ContractAbi/name string?)
+(s/def :spyglass.streamline.alpha.ast.ContractAbi/abi-json string?)
 
 
-(s/def ::ContractAbi-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.ContractAbi/name ]))
-(def ContractAbi-defaults {:name "" :events [] :functions [] })
+(s/def ::ContractAbi-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.ContractAbi/name :spyglass.streamline.alpha.ast.ContractAbi/abi-json ]))
+(def ContractAbi-defaults {:name "" :abi-json "" :events [] :functions [] })
 
 (defn cis->ContractAbi
   "CodedInputStream to ContractAbi"
@@ -437,8 +439,9 @@
          (fn [tag index]
              (case index
                1 [:name (serdes.core/cis->String is)]
-               2 [:events (serdes.complex/cis->repeated ecis->EventAbi is)]
-               3 [:functions (serdes.complex/cis->repeated ecis->FunctionAbi is)]
+               2 [:abi-json (serdes.core/cis->String is)]
+               3 [:events (serdes.complex/cis->repeated ecis->EventAbi is)]
+               4 [:functions (serdes.complex/cis->repeated ecis->FunctionAbi is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)

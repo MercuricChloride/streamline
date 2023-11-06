@@ -25,7 +25,6 @@ map super_simple:
 map transfers:
 (Block) -> Transfer {
  (block) => block.logs;
- filter (log) => log.address == BAYC_ADDRESS;
  map (log) => match_decode(Foo.Transfer, log);
 }
 

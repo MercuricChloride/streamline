@@ -13,8 +13,9 @@ message StreamlineFile {
 
 message ContractAbi {
     string name = 1;
-    repeated EventAbi events = 2;
-    repeated FunctionAbi functions = 3;
+    string abi_json = 2;
+    repeated EventAbi events = 3;
+    repeated FunctionAbi functions = 4;
 }
 
 message EventAbi {

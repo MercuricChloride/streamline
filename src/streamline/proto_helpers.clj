@@ -17,7 +17,6 @@
 ;;   "Slurps an spkg file into a sf/Package message"
 ;;     [file]
 ;;   (sf/new-Package (slurp-bytes file)))
-                 
 (defn clojure-type-to-protobuf-type [value]
   (cond
     (string? value) "string"
@@ -26,9 +25,14 @@
     (map? value) "message"
     :else (throw (IllegalArgumentException. (str "Unsupported type: " (type value))))))
 
-(defn address?
+(defn solidity-type->protobuf-type
  [input]
- (= input "address"))
+ (cond
+  (or (string/starts-with? input "uint")
+      (string/starts-with? input "int")
+      (string/starts-with? input "address")
+      (string/starts-with? input "bytes")) "string"
+  :else input))
 
 (defn map-entry-to-protobuf-field [index key value]
   (str (clojure-type-to-protobuf-type value) " " key " = " index ";"))
@@ -43,18 +47,27 @@
 
 (defmulti ->protobuf first)
 
-(def test-struct [:struct-def "Zap" [:struct-field "user" [:solidity-type "address"]] [:struct-field "balance" [:solidity-type "uint256"]]])
+(def test-struct [:struct-def "Zap" [:struct-field "user" "address"] [:struct-field "balance" "uint256"]])
 
-(defn solidity-type->protobuf-type
-  [value]
-  (cond 
-    ()))
-                  
-(defmethod ->protobuf :struct-def 
+(defmethod ->protobuf :struct-field
+ [input]
+ (let [[_ name type] input
+       type (solidity-type->protobuf-type type)]
+  (str type " " name)))
+
+(defn index+field->protobuf
+  "Converts a vector of [index :struct-field] into a protobuf field"
+ [input]
+ (let [[index field] input
+       field (->protobuf field)]
+  (str field " = " index ";")))
+
+(defmethod ->protobuf :struct-def
   [input]
   (let [[_ struct-name & fields] input
-        fields (map-indexed vector fields)]
-   [struct-name fields]))
+        index+fields (map-indexed vector fields)
+        fields (string/join "\n" (map index+field->protobuf index+fields))]
+   (str "message " struct-name "{\n" fields "\n}")))
 
 (->protobuf test-struct)
 

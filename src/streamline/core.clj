@@ -38,34 +38,30 @@
     <store-update-policy> = ('Set' / 'SetNotExists' / 'Add' / 'Min' / 'Max') <'('> (identifier array?) <')'>
 
     struct-def = <'struct'> identifier <'{'> (struct-field <';'>)* <'}'>
-    struct-field = identifier <':'> (solidity-type / custom-type) ('[' ']')?
+    struct-field = identifier <':'> identifier ('[' ']')?
 
     interface-def = <'interface'> identifier <'{'> ((event-def / function-def) <';'>)* <'}'>
 
     event-def = <'event'> identifier <'('> event-param* <')'>
     <event-param> = (non-indexed-event-param / indexed-event-param)
-    indexed-event-param = (solidity-type / custom-type) <'indexed'> identifier
-    non-indexed-event-param = (solidity-type / custom-type) identifier
+    indexed-event-param = identifier <'indexed'> identifier
+    non-indexed-event-param = identifier identifier
 
     <function-def> = (function-w-return / function-wo-return)
     function-w-return = <'function'> identifier <'('> function-params <')'> <function-modifier*> returns
     function-wo-return = <'function'> identifier <'('> function-params <')'> <function-modifier*>
     function-params = function-param*
-    function-param = (solidity-type / custom-type) <location?> identifier
+    function-param = identifier <location?> identifier
     location = 'memory' / 'storage' / 'calldata'
     function-modifier = visibility / mutability
     visibility = 'public' / 'private' / 'internal' / 'external'
     mutability = 'view' / 'pure'
     returns = <'returns'> <'('> return-param* <')'>
-    <return-param> = unnamed-return
-    unnamed-return = (solidity-type / custom-type) <location?>
-
-    type = solidity-type / custom-type
-    <solidity-type> = 'address' / 'bool' / 'string' / 'bytes' / ('int' number?) / ('uint' number?);
-    custom-type = identifier
+    <return-param> = (named-return / unnamed-return)
+    unnamed-return = identifier <location?>
+    named-return = identifier <location?> identifier
 
     <identifier> = #'[a-zA-Z_][a-zA-Z0-9_]*'
-    <silent-number> = #'[0-9]+'
     number = #'[0-9]+'
     string = <'\"'> #'[^\"\\n]*' <'\"'>
     boolean = 'true' / 'false'
@@ -105,14 +101,21 @@
     (ast/new-StreamlineFile {:modules module-defs
                              :contracts interfaces
                              :abi-json abi-json})))
-                             
 
 (def ast (streamline-parser (slurp "streamline-test.strm")))
+
+(let [interfaces (filter #(= (first %) :interface-def) ast)
+      interfaces (into [] (map ->abi interfaces))]
+ (doseq [interface interfaces]
+  (let [name (:name interface)
+        abi (:abi-json interface)
+        path (str "/tmp/spyglass/abis/" name ".json")]
+    (spit path abi))))
 
 (def ast-file (protojure/->pb (ast->file ast)))
 (write-file ast-file "streamline-test.cstrm")
 
-(def interface (first (map ->abi (filter #(= (first %) :interface-def) ast))))
+;(def interface (first (map ->abi (filter #(= (first %) :interface-def) ast))))
 
 ;(interface->abijson interface)
 

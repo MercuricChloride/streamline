@@ -1,5 +1,6 @@
 (ns streamline.ast-helpers
-  (:require [spyglass.streamline.alpha.ast :as ast]))
+  (:require [spyglass.streamline.alpha.ast :as ast]
+            [clojure.data.json :as json]))
 
 (defn parse-int [s]
   (Integer/parseInt (re-find #"\A-?\d+" s)))
@@ -60,11 +61,11 @@
 (defmethod ->function :hof
   [input]
   (let [[_ parent-fn & lambda] input
-        inputs (into [] (butlast lambda))
-        expression (last lambda)]
-    (ast/new-Function {:function {:hof {:parent parent-fn
-                      :inputs inputs
-                      :body (->expr expression)}}})))
+          inputs (into [] (butlast lambda))
+          expression (last lambda)]
+   (ast/new-Function {:function {:hof {:parent parent-fn
+                                       :inputs inputs
+                                       :body (->expr expression)}}})))
 
 (defn ->module-signature
   [input]
@@ -77,11 +78,11 @@
 (defn ->map-module
   "Returns an AST node for a module definition"
   [input]
-  (let [[type ident signature & pipeline] (rest input)]
-    (ast/new-ModuleDef {:kind type
-                        :identifier ident
-                        :signature (->module-signature signature)
-                        :pipeline (map ->function pipeline)})))
+  (let [[_ type ident signature & pipeline] input]
+       (ast/new-ModuleDef {:kind type
+                           :identifier ident
+                           :signature (->module-signature signature)
+                           :pipeline (map ->function pipeline)})))
 
 (defmulti ->abi
   "Converts a parse tree node for a function or event, into it's ABI JSON representation"
@@ -110,16 +111,14 @@
 
 (defmethod ->abi :function-param
   [input]
-  (let [[_ [_ & type-parts] name] input
-        type (reduce str type-parts)]
+  (let [[_ type name] input]
     (ast/new-FunctionInput
      {:type type
       :name name})))
 
 (defmethod ->abi :unnamed-return
   [input]
-  (let [[_ [_ & type-parts]] input
-        type (reduce str type-parts)]
+  (let [[_ type] input]
     (ast/new-FunctionInput
      {:type type
       :name ""})))
@@ -135,8 +134,7 @@
 
 (defmethod ->abi :indexed-event-param
   [input]
-  (let [[_ [_ & type-parts] name] input
-        type (reduce str type-parts)]
+  (let [[_ type name] input]
     (ast/new-EventInput
      {:type type
       :name name
@@ -144,8 +142,7 @@
 
 (defmethod ->abi :non-indexed-event-param
   [input]
-  (let [[_ [_ & type-parts] name] input
-        type (reduce str type-parts)]
+  (let [[_ type name] input]
     (ast/new-EventInput
      {:type type
       :name name
@@ -159,9 +156,15 @@
   [input]
   (let [[_ name & items] input
         events (filter #(= (first %) :event-def) items)
-        functions (filter function-def? items)]
+        events (into [] (map ->abi events))
+        functions (filter function-def? items)
+        functions (into [] (map ->abi functions))
+        abi-json (->> (concat events functions)
+                      (into [])
+                      (json/write-str))]
     (ast/new-ContractAbi
      {:name name
-      :functions (into [] (map ->abi functions))
-      :events (into [] (map ->abi events))})))
-     ;(into [] (flatten [(map ->abi events) (map ->abi functions)]))))
+      :abi-json abi-json
+      :functions functions
+      :events events})))
+      
