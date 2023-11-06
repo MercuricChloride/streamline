@@ -84,6 +84,21 @@
                            :signature (->module-signature signature)
                            :pipeline (map ->function pipeline)})))
 
+(defn ->struct-field
+ [input]
+ (let [[_ type name] input]
+  (ast/new-StructField {:type type
+                        :name name})))
+
+
+(defn ->structdef
+ "Converts a structdef ast node into a StructDef message"
+ [input]
+ (let [[_ name & fields] input
+       fields (into [] (map ->struct-field fields))]
+    (ast/new-StructDef {:name name
+                        :fields fields})))
+
 (defmulti ->abi
   "Converts a parse tree node for a function or event, into it's ABI JSON representation"
   first)

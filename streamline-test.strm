@@ -5,14 +5,19 @@ interface Foo {
     function foo(uint256 bar) public returns (uint256);
 }
 
+interface ERC721 {
+    event Transfer(address from, address to, uint256 tokenId);
+    event Approval(address from, address to, uint256 tokenId);
+}
+
 struct Zap {
-    user: address;
-    balance: uint256;
+    address user;
+    uint256 balance;
 }
 
 struct Bar {
-    user: address;
-    balance: uint256;
+    address user;
+    uint256 balance;
 }
 
 map super_simple:

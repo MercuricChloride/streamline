@@ -22,9 +22,6 @@
 (declare cis->ContractFunctionParameter)
 (declare ecis->ContractFunctionParameter)
 (declare new-ContractFunctionParameter)
-(declare cis->TypeField)
-(declare ecis->TypeField)
-(declare new-TypeField)
 (declare cis->FieldAccess)
 (declare ecis->FieldAccess)
 (declare new-FieldAccess)
@@ -37,6 +34,9 @@
 (declare cis->ContractAbi)
 (declare ecis->ContractAbi)
 (declare new-ContractAbi)
+(declare cis->StructDef)
+(declare ecis->StructDef)
+(declare new-StructDef)
 (declare cis->FunctionAbi)
 (declare ecis->FunctionAbi)
 (declare new-FunctionAbi)
@@ -58,9 +58,6 @@
 (declare cis->Function)
 (declare ecis->Function)
 (declare new-Function)
-(declare cis->TypeDeclaration)
-(declare ecis->TypeDeclaration)
-(declare new-TypeDeclaration)
 (declare cis->Hof)
 (declare ecis->Hof)
 (declare new-Hof)
@@ -73,6 +70,9 @@
 (declare cis->ModuleSignature)
 (declare ecis->ModuleSignature)
 (declare new-ModuleSignature)
+(declare cis->StructField)
+(declare ecis->StructField)
+(declare new-StructField)
 (declare cis->Literal)
 (declare ecis->Literal)
 (declare new-Literal)
@@ -208,57 +208,6 @@
   (cis->ContractFunctionParameter (serdes.stream/new-cis input)))
 
 (def ^:protojure.protobuf.any/record ContractFunctionParameter-meta {:type "spyglass.streamline.alpha.ast.ContractFunctionParameter" :decoder pb->ContractFunctionParameter})
-
-;-----------------------------------------------------------------------------
-; TypeField
-;-----------------------------------------------------------------------------
-(defrecord TypeField-record [field-name field-type]
-  pb/Writer
-  (serialize [this os]
-    (serdes.core/write-String 1  {:optimize true} (:field-name this) os)
-    (serdes.core/write-String 2  {:optimize true} (:field-type this) os))
-  pb/TypeReflection
-  (gettype [this]
-    "spyglass.streamline.alpha.ast.TypeField"))
-
-(s/def :spyglass.streamline.alpha.ast.TypeField/field-name string?)
-(s/def :spyglass.streamline.alpha.ast.TypeField/field-type string?)
-(s/def ::TypeField-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.TypeField/field-name :spyglass.streamline.alpha.ast.TypeField/field-type ]))
-(def TypeField-defaults {:field-name "" :field-type "" })
-
-(defn cis->TypeField
-  "CodedInputStream to TypeField"
-  [is]
-  (->> (tag-map TypeField-defaults
-         (fn [tag index]
-             (case index
-               1 [:field-name (serdes.core/cis->String is)]
-               2 [:field-type (serdes.core/cis->String is)]
-
-               [index (serdes.core/cis->undefined tag is)]))
-         is)
-        (map->TypeField-record)))
-
-(defn ecis->TypeField
-  "Embedded CodedInputStream to TypeField"
-  [is]
-  (serdes.core/cis->embedded cis->TypeField is))
-
-(defn new-TypeField
-  "Creates a new instance from a map, similar to map->TypeField except that
-  it properly accounts for nested messages, when applicable.
-  "
-  [init]
-  {:pre [(if (s/valid? ::TypeField-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::TypeField-spec init))))]}
-  (-> (merge TypeField-defaults init)
-      (map->TypeField-record)))
-
-(defn pb->TypeField
-  "Protobuf to TypeField"
-  [input]
-  (cis->TypeField (serdes.stream/new-cis input)))
-
-(def ^:protojure.protobuf.any/record TypeField-meta {:type "spyglass.streamline.alpha.ast.TypeField" :decoder pb->TypeField})
 
 ;-----------------------------------------------------------------------------
 ; FieldAccess
@@ -469,6 +418,58 @@
   (cis->ContractAbi (serdes.stream/new-cis input)))
 
 (def ^:protojure.protobuf.any/record ContractAbi-meta {:type "spyglass.streamline.alpha.ast.ContractAbi" :decoder pb->ContractAbi})
+
+;-----------------------------------------------------------------------------
+; StructDef
+;-----------------------------------------------------------------------------
+(defrecord StructDef-record [name fields]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:name this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:fields this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.StructDef"))
+
+(s/def :spyglass.streamline.alpha.ast.StructDef/name string?)
+
+(s/def ::StructDef-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StructDef/name ]))
+(def StructDef-defaults {:name "" :fields [] })
+
+(defn cis->StructDef
+  "CodedInputStream to StructDef"
+  [is]
+  (->> (tag-map StructDef-defaults
+         (fn [tag index]
+             (case index
+               1 [:name (serdes.core/cis->String is)]
+               2 [:fields (serdes.complex/cis->repeated ecis->StructField is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->StructDef-record)))
+
+(defn ecis->StructDef
+  "Embedded CodedInputStream to StructDef"
+  [is]
+  (serdes.core/cis->embedded cis->StructDef is))
+
+(defn new-StructDef
+  "Creates a new instance from a map, similar to map->StructDef except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::StructDef-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::StructDef-spec init))))]}
+  (-> (merge StructDef-defaults init)
+      (cond-> (some? (get init :fields)) (update :fields #(map new-StructField %)))
+      (map->StructDef-record)))
+
+(defn pb->StructDef
+  "Protobuf to StructDef"
+  [input]
+  (cis->StructDef (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record StructDef-meta {:type "spyglass.streamline.alpha.ast.StructDef" :decoder pb->StructDef})
 
 ;-----------------------------------------------------------------------------
 ; FunctionAbi
@@ -717,7 +718,7 @@
   (->> (tag-map StreamlineFile-defaults
          (fn [tag index]
              (case index
-               1 [:types (serdes.complex/cis->repeated ecis->TypeDeclaration is)]
+               1 [:types (serdes.complex/cis->repeated ecis->StructDef is)]
                2 [:contracts (serdes.complex/cis->repeated ecis->ContractAbi is)]
                3 [:modules (serdes.complex/cis->repeated ecis->ModuleDef is)]
                4 [:abi-json (serdes.complex/cis->repeated serdes.core/cis->String is)]
@@ -738,7 +739,7 @@
   [init]
   {:pre [(if (s/valid? ::StreamlineFile-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::StreamlineFile-spec init))))]}
   (-> (merge StreamlineFile-defaults init)
-      (cond-> (some? (get init :types)) (update :types #(map new-TypeDeclaration %)))
+      (cond-> (some? (get init :types)) (update :types #(map new-StructDef %)))
       (cond-> (some? (get init :contracts)) (update :contracts #(map new-ContractAbi %)))
       (cond-> (some? (get init :modules)) (update :modules #(map new-ModuleDef %)))
       (map->StreamlineFile-record)))
@@ -850,58 +851,6 @@
   (cis->Function (serdes.stream/new-cis input)))
 
 (def ^:protojure.protobuf.any/record Function-meta {:type "spyglass.streamline.alpha.ast.Function" :decoder pb->Function})
-
-;-----------------------------------------------------------------------------
-; TypeDeclaration
-;-----------------------------------------------------------------------------
-(defrecord TypeDeclaration-record [name fields]
-  pb/Writer
-  (serialize [this os]
-    (serdes.core/write-String 1  {:optimize true} (:name this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:fields this) os))
-  pb/TypeReflection
-  (gettype [this]
-    "spyglass.streamline.alpha.ast.TypeDeclaration"))
-
-(s/def :spyglass.streamline.alpha.ast.TypeDeclaration/name string?)
-
-(s/def ::TypeDeclaration-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.TypeDeclaration/name ]))
-(def TypeDeclaration-defaults {:name "" :fields [] })
-
-(defn cis->TypeDeclaration
-  "CodedInputStream to TypeDeclaration"
-  [is]
-  (->> (tag-map TypeDeclaration-defaults
-         (fn [tag index]
-             (case index
-               1 [:name (serdes.core/cis->String is)]
-               2 [:fields (serdes.complex/cis->repeated ecis->TypeField is)]
-
-               [index (serdes.core/cis->undefined tag is)]))
-         is)
-        (map->TypeDeclaration-record)))
-
-(defn ecis->TypeDeclaration
-  "Embedded CodedInputStream to TypeDeclaration"
-  [is]
-  (serdes.core/cis->embedded cis->TypeDeclaration is))
-
-(defn new-TypeDeclaration
-  "Creates a new instance from a map, similar to map->TypeDeclaration except that
-  it properly accounts for nested messages, when applicable.
-  "
-  [init]
-  {:pre [(if (s/valid? ::TypeDeclaration-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::TypeDeclaration-spec init))))]}
-  (-> (merge TypeDeclaration-defaults init)
-      (cond-> (some? (get init :fields)) (update :fields #(map new-TypeField %)))
-      (map->TypeDeclaration-record)))
-
-(defn pb->TypeDeclaration
-  "Protobuf to TypeDeclaration"
-  [input]
-  (cis->TypeDeclaration (serdes.stream/new-cis input)))
-
-(def ^:protojure.protobuf.any/record TypeDeclaration-meta {:type "spyglass.streamline.alpha.ast.TypeDeclaration" :decoder pb->TypeDeclaration})
 
 ;-----------------------------------------------------------------------------
 ; Hof
@@ -1118,6 +1067,57 @@
   (cis->ModuleSignature (serdes.stream/new-cis input)))
 
 (def ^:protojure.protobuf.any/record ModuleSignature-meta {:type "spyglass.streamline.alpha.ast.ModuleSignature" :decoder pb->ModuleSignature})
+
+;-----------------------------------------------------------------------------
+; StructField
+;-----------------------------------------------------------------------------
+(defrecord StructField-record [name type]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:name this) os)
+    (serdes.core/write-String 2  {:optimize true} (:type this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.StructField"))
+
+(s/def :spyglass.streamline.alpha.ast.StructField/name string?)
+(s/def :spyglass.streamline.alpha.ast.StructField/type string?)
+(s/def ::StructField-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StructField/name :spyglass.streamline.alpha.ast.StructField/type ]))
+(def StructField-defaults {:name "" :type "" })
+
+(defn cis->StructField
+  "CodedInputStream to StructField"
+  [is]
+  (->> (tag-map StructField-defaults
+         (fn [tag index]
+             (case index
+               1 [:name (serdes.core/cis->String is)]
+               2 [:type (serdes.core/cis->String is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->StructField-record)))
+
+(defn ecis->StructField
+  "Embedded CodedInputStream to StructField"
+  [is]
+  (serdes.core/cis->embedded cis->StructField is))
+
+(defn new-StructField
+  "Creates a new instance from a map, similar to map->StructField except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::StructField-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::StructField-spec init))))]}
+  (-> (merge StructField-defaults init)
+      (map->StructField-record)))
+
+(defn pb->StructField
+  "Protobuf to StructField"
+  [input]
+  (cis->StructField (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record StructField-meta {:type "spyglass.streamline.alpha.ast.StructField" :decoder pb->StructField})
 
 ;-----------------------------------------------------------------------------
 ; Literal

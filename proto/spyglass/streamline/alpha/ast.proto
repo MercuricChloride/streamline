@@ -5,7 +5,7 @@ package spyglass.streamline.alpha.ast;
 import "sf/substreams/v1/package.proto";
 
 message StreamlineFile {
-    repeated TypeDeclaration types = 1;
+    repeated StructDef types = 1;
     repeated ContractAbi contracts = 2;
     repeated ModuleDef modules = 3;
     repeated string abi_json = 4;
@@ -16,6 +16,16 @@ message ContractAbi {
     string abi_json = 2;
     repeated EventAbi events = 3;
     repeated FunctionAbi functions = 4;
+}
+
+message StructDef {
+    string name = 1;
+    repeated StructField fields = 2;
+}
+
+message StructField {
+    string name = 1;
+    string type = 2;
 }
 
 message EventAbi {
@@ -48,16 +58,6 @@ message FunctionInput {
 message ContractFunctionParameter {
     string name = 1;
     string type = 2;
-}
-
-message TypeDeclaration {
-    string name = 1;
-    repeated TypeField fields = 2;
-}
-
-message TypeField {
-    string field_name = 1;
-    string field_type = 2;
 }
 
 message ModuleDef {

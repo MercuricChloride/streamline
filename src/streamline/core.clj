@@ -1,7 +1,9 @@
 (ns streamline.core
   (:require [instaparse.core :as insta]
             [streamline.ast-helpers :refer :all]
+            [streamline.proto-helpers :refer :all]
             [clojure.java.io :as io]
+            [clojure.string :as string]
              ;[sf.substreams.v1 :as sf]
             [clojure.data.json :as json]
             [spyglass.streamline.alpha.ast :as ast]
@@ -38,7 +40,7 @@
     <store-update-policy> = ('Set' / 'SetNotExists' / 'Add' / 'Min' / 'Max') <'('> (identifier array?) <')'>
 
     struct-def = <'struct'> identifier <'{'> (struct-field <';'>)* <'}'>
-    struct-field = identifier <':'> identifier ('[' ']')?
+    struct-field = identifier identifier ('[' ']')?
 
     interface-def = <'interface'> identifier <'{'> ((event-def / function-def) <';'>)* <'}'>
 
@@ -95,11 +97,14 @@
   [ast]
   (let [modules (filter #(= (first %) :module) ast)
         interfaces (filter #(= (first %) :interface-def) ast)
+        struct-defs (filter #(= (first %) :struct-def) ast)
         module-defs (map ->map-module modules)
+        struct-defs (map ->structdef struct-defs)
         interfaces (into [] (map ->abi interfaces))
         abi-json (into [] (map #(interface->abijson %) interfaces))]
     (ast/new-StreamlineFile {:modules module-defs
                              :contracts interfaces
+                             :types struct-defs
                              :abi-json abi-json})))
 
 (def ast (streamline-parser (slurp "streamline-test.strm")))
@@ -112,8 +117,11 @@
         path (str "/tmp/spyglass/abis/" name ".json")]
     (spit path abi))))
 
-(def ast-file (protojure/->pb (ast->file ast)))
-(write-file ast-file "streamline-test.cstrm")
+(let [types (:types (ast->file ast))]
+     (structs->protobuf types))
+
+;(def ast-file (protojure/->pb (ast->file ast)))
+;(write-file ast-file "streamline-test.cstrm")
 
 ;(def interface (first (map ->abi (filter #(= (first %) :interface-def) ast))))
 
