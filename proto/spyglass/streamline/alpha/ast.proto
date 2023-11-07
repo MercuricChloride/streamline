@@ -9,6 +9,7 @@ message StreamlineFile {
     repeated ContractAbi contracts = 2;
     repeated ModuleDef modules = 3;
     repeated string abi_json = 4;
+    repeated string protobufs = 5;
 }
 
 message ContractAbi {

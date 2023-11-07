@@ -101,11 +101,13 @@
         module-defs (map ->map-module modules)
         struct-defs (map ->structdef struct-defs)
         interfaces (into [] (map ->abi interfaces))
-        abi-json (into [] (map #(interface->abijson %) interfaces))]
+        abi-json (into [] (map #(interface->abijson %) interfaces))
+        contract-protobufs (into [] (map contract->protobuf interfaces))]
     (ast/new-StreamlineFile {:modules module-defs
                              :contracts interfaces
                              :types struct-defs
-                             :abi-json abi-json})))
+                             :abi-json abi-json
+                             :protobufs contract-protobufs})))
 
 (def ast (streamline-parser (slurp "streamline-test.strm")))
 
@@ -120,8 +122,13 @@
 (let [types (:types (ast->file ast))]
      (structs->protobuf types))
 
-;(def ast-file (protojure/->pb (ast->file ast)))
-;(write-file ast-file "streamline-test.cstrm")
+;(ast->file ast)
+
+(def ast-file (protojure/->pb (ast->file ast)))
+
+(ast/pb->StreamlineFile ast-file)
+
+(write-file ast-file "streamline-test.cstrm")
 
 ;(def interface (first (map ->abi (filter #(= (first %) :interface-def) ast))))
 
