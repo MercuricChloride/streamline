@@ -102,12 +102,14 @@
         struct-defs (map ->structdef struct-defs)
         interfaces (into [] (map ->abi interfaces))
         abi-json (into [] (map #(interface->abijson %) interfaces))
-        contract-protobufs (into [] (map contract->protobuf interfaces))]
+        contract-protobufs (into [] (map contract->protobuf interfaces))
+        struct-protobuf (structs->protobuf struct-defs)
+        protobufs (conj contract-protobufs struct-protobuf)]
     (ast/new-StreamlineFile {:modules module-defs
                              :contracts interfaces
                              :types struct-defs
                              :abi-json abi-json
-                             :protobufs contract-protobufs})))
+                             :protobufs protobufs})))
 
 (def ast (streamline-parser (slurp "streamline-test.strm")))
 
