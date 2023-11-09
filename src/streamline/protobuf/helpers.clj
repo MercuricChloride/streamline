@@ -1,22 +1,8 @@
-(ns streamline.proto-helpers
-  (:require [streamline.ast-helpers :refer :all]
+(ns streamline.protobuf.helpers
+  (:require [streamline.ast.helpers :refer :all]
             [sf.substreams.v1 :as sf]
             [clojure.string :as string]
-            [spyglass.streamline.alpha.ast :as ast]
-            [clojure.string :as str]))
-
-;; (defn slurp-bytes
-;;   "Slurp the bytes from a slurpable thing"
-;;   [x]
-;;   (with-open [in (clojure.java.io/input-stream x)
-;;               out (java.io.ByteArrayOutputStream.)]
-;;     (clojure.java.io/copy in out)
-;;     (.toByteArray out)))
-
-;; (defn slurp-spkg
-;;   "Slurps an spkg file into a sf/Package message"
-;;     [file]
-;;   (sf/new-Package (slurp-bytes file)))
+            [spyglass.streamline.alpha.ast :as ast]))
 
 (defn solidity-type->protobuf-type
   [input]
@@ -29,7 +15,8 @@
 
 (def test-struct [:struct-def "Zap" [:struct-field "user" "address[]"] [:struct-field "balance" "uint256"]])
 
-(defmulti ->protobuf first)
+(defmulti ->protobuf
+  "converts a parse tree node into a protobuf message" first)
 
 (defn index+field->protobuf
   "Converts a vector of [index :struct-field] into a protobuf field"

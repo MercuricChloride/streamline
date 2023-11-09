@@ -1,4 +1,4 @@
-(ns streamline.ast-helpers
+(ns streamline.ast.helpers
   (:require [spyglass.streamline.alpha.ast :as ast]
             [clojure.data.json :as json]
             [clojure.string :as string]))

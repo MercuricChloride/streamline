@@ -69,7 +69,7 @@ message ModuleDef {
 }
 
 message ModuleSignature {
-    repeated string  inputs = 1;
+    repeated string inputs = 1;
     string output = 2;
 }
 
