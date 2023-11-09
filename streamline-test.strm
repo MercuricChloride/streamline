@@ -5,7 +5,7 @@ interface Foo {
     function foo(uint256 bar) public returns (uint256);
 }
 
-interface ERC721 {
+interface Erc721 {
     event Transfer(address from, address to, uint256 tokenId);
     event Approval(address from, address to, uint256 tokenId);
 }
@@ -20,25 +20,31 @@ struct Bar {
     uint256 balance;
 }
 
+struct Pools {
+    address pool;
+}
+
 map super_simple:
-(Block) -> Transfer {
+(Block, Clock) -> Erc721.Transfer {
  (block) => 42;
  (num) => "Streamline";
  (foo) => 42+42+69;
 }
 
 map transfers:
-(Block) -> Transfer {
+(Block, Clock) -> Erc721.Transfer {
  (block) => block.logs;
  map (log) => match_decode(Foo.Transfer, log);
 }
 
 map something_else:
-(Transfer) -> Pools {
+(map_transfers) -> Pools {
  (block) => foo(block);
- filter (block) => logs(block);
- map (block) => logs(block);
- map (transfer foo) => logs(block);
+ filter (block) => Pools {
+                     pools: [Pool{
+                                address: "asdfasdf";
+                              }];
+                   };
 }
 
 map another_one:

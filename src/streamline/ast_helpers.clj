@@ -1,6 +1,7 @@
 (ns streamline.ast-helpers
   (:require [spyglass.streamline.alpha.ast :as ast]
-            [clojure.data.json :as json]))
+            [clojure.data.json :as json]
+            [clojure.string :as string]))
 
 (defn parse-int [s]
   (Integer/parseInt (re-find #"\A-?\d+" s)))
@@ -67,11 +68,19 @@
                                        :inputs inputs
                                        :body (->expr expression)}}})))
 
+(defn format-signature-output
+  "Converts a signature output to a string, if it is a :fully-qualified-identifier, otherwise returns the string as is"
+ [output]
+ (if (= (first output) :fully-qualified-identifier)
+   (string/join "." (rest output))
+   output))
+ 
+
 (defn ->module-signature
   [input]
   (let [[_ & idents] input
         inputs (butlast idents)
-        output (last idents)]
+        output (format-signature-output (last idents))]
     (ast/new-ModuleSignature {:inputs (into [] inputs)
                               :output output})))
 

@@ -25,7 +25,10 @@
     <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
     <pipeline> = (lambda / hof)*
 
-    <expression> = (number / string / function-call / binary-expression / field-access / expr-ident )
+    <expression> = (number / string / struct-expression / array-expression / function-call / binary-expression / field-access / expr-ident )
+    struct-expression = identifier <'{'> struct-expression-field* <'}'>
+    struct-expression-field = identifier <':'> expression <';'>
+    array-expression = <'['> expression* <']'>
     expr-ident = identifier
     function-call = expression <'('> expression* <')'>
     binary-op = ('+' / '-' / '*' / '/' / '==' / '!=' / '<' / '>' / '<=' / '>=' / '&&' / '||' / '!')
@@ -35,7 +38,7 @@
     module = module-type identifier <':'> module-signature <'{'> pipeline  <'}'>
     <module-type> = 'map' | 'store'
     module-signature = map-module-signature / store-module-signature
-    <map-module-signature> = <'('> (identifier array?)* <')'> <'->'> (identifier array?)
+    <map-module-signature> = <'('> (identifier array?)* <')'> <'->'> ((fully-qualified-identifier / identifier) array?)
     <store-module-signature> = <'('> (identifier array?)* <')'> <'->'> store-update-policy
     <store-update-policy> = ('Set' / 'SetNotExists' / 'Add' / 'Min' / 'Max') <'('> (identifier array?) <')'>
 
@@ -64,6 +67,7 @@
     named-return = identifier <location?> identifier
 
     <identifier> = #'[a-zA-Z_][a-zA-Z0-9_]*'
+    fully-qualified-identifier = identifier (<'.'> identifier)+
     number = #'[0-9]+'
     string = <'\"'> #'[^\"\\n]*' <'\"'>
     boolean = 'true' / 'false'
@@ -123,8 +127,6 @@
 
 (let [types (:types (ast->file ast))]
      (structs->protobuf types))
-
-;(ast->file ast)
 
 (def ast-file (protojure/->pb (ast->file ast)))
 
