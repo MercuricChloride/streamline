@@ -7,8 +7,8 @@
    [spyglass.streamline.alpha.ast :as ast]
    [streamline.ast.analysis.type-validation :refer [get-array-types
                                                     symbol-table]]
-   [streamline.ast.helpers :refer [->abi ->contract-instance ->map-module
-                                   ->structdef]]
+   [streamline.ast.helpers :refer [->abi ->contract-instance ->conversion
+                                   ->map-module ->structdef]]
    [streamline.protobuf.helpers :refer [contract->protobuf structs->protobuf]]))
 
 (defn write-file [input path]
@@ -56,6 +56,10 @@
 
         array-types (get-array-types module-defs (symbol-table interfaces struct-defs contract-instances))
 
+        conversions (->> ast
+                         (filter #(= (first %) :conversion))
+                         (map ->conversion))
+
         abi-json (into [] (map interface->abijson interfaces))
 
         contract-protobufs (into [] (map #(contract->protobuf % array-types) interfaces))
@@ -68,7 +72,8 @@
                              :types struct-defs
                              :abi-json abi-json
                              :protobufs protobufs
-                             :instances contract-instances})))
+                             :instances contract-instances
+                             :conversions conversions})))
 
 (defn write-ast
   [ast]

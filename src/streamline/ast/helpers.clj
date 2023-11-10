@@ -19,8 +19,8 @@
   [input]
    (let [[_ struct-name & fields] input
          fields (into [] (map ->expr fields))]
-     (ast/new-Expression {:expression {:literal {:literal {:struct-name struct-name
-                                                           :fields fields}}}})))
+     (ast/new-Expression {:expression {:literal {:literal {:struct {:name struct-name
+                                                                    :fields fields}}}}})))
 
 (defmethod ->expr :function-call
   [input]
@@ -88,6 +88,17 @@
     (if (= (last type) "[]")
         (str (string/join "." (butlast type) ) "[]")
         (str (string/join "." type)))))
+
+(defn ->conversion
+  "Converts a conversion node into a Conversion protobuf message"
+  [input]
+  (let [[_ from to & pipeline] input
+        from (format-type from)
+        to (format-type to)
+        pipeline (map ->function pipeline)]
+    (ast/new-Conversion {:from from
+                         :to to
+                         :pipeline pipeline})))
 
 (defn format-types
   [types]

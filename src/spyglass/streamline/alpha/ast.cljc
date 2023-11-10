@@ -64,6 +64,9 @@
 (declare cis->FunctionCall)
 (declare ecis->FunctionCall)
 (declare new-FunctionCall)
+(declare cis->Conversion)
+(declare ecis->Conversion)
+(declare new-Conversion)
 (declare cis->Function)
 (declare ecis->Function)
 (declare new-Function)
@@ -866,7 +869,7 @@
 ;-----------------------------------------------------------------------------
 ; StreamlineFile
 ;-----------------------------------------------------------------------------
-(defrecord StreamlineFile-record [types contracts modules abi-json protobufs instances]
+(defrecord StreamlineFile-record [types contracts modules abi-json protobufs instances conversions]
   pb/Writer
   (serialize [this os]
     (serdes.complex/write-repeated serdes.core/write-embedded 1 (:types this) os)
@@ -874,7 +877,8 @@
     (serdes.complex/write-repeated serdes.core/write-embedded 3 (:modules this) os)
     (serdes.complex/write-repeated serdes.core/write-String 4 (:abi-json this) os)
     (serdes.complex/write-repeated serdes.core/write-String 5 (:protobufs this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 6 (:instances this) os))
+    (serdes.complex/write-repeated serdes.core/write-embedded 6 (:instances this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 7 (:conversions this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.StreamlineFile"))
@@ -882,8 +886,9 @@
 (s/def :spyglass.streamline.alpha.ast.StreamlineFile/abi-json (s/every string?))
 (s/def :spyglass.streamline.alpha.ast.StreamlineFile/protobufs (s/every string?))
 
+
 (s/def ::StreamlineFile-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StreamlineFile/abi-json :spyglass.streamline.alpha.ast.StreamlineFile/protobufs ]))
-(def StreamlineFile-defaults {:types [] :contracts [] :modules [] :abi-json [] :protobufs [] :instances [] })
+(def StreamlineFile-defaults {:types [] :contracts [] :modules [] :abi-json [] :protobufs [] :instances [] :conversions [] })
 
 (defn cis->StreamlineFile
   "CodedInputStream to StreamlineFile"
@@ -897,6 +902,7 @@
                4 [:abi-json (serdes.complex/cis->repeated serdes.core/cis->String is)]
                5 [:protobufs (serdes.complex/cis->repeated serdes.core/cis->String is)]
                6 [:instances (serdes.complex/cis->repeated ecis->ContractInstance is)]
+               7 [:conversions (serdes.complex/cis->repeated ecis->Conversion is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -918,6 +924,7 @@
       (cond-> (some? (get init :contracts)) (update :contracts #(map new-ContractAbi %)))
       (cond-> (some? (get init :modules)) (update :modules #(map new-ModuleDef %)))
       (cond-> (some? (get init :instances)) (update :instances #(map new-ContractInstance %)))
+      (cond-> (some? (get init :conversions)) (update :conversions #(map new-Conversion %)))
       (map->StreamlineFile-record)))
 
 (defn pb->StreamlineFile
@@ -978,6 +985,61 @@
   (cis->FunctionCall (serdes.stream/new-cis input)))
 
 (def ^:protojure.protobuf.any/record FunctionCall-meta {:type "spyglass.streamline.alpha.ast.FunctionCall" :decoder pb->FunctionCall})
+
+;-----------------------------------------------------------------------------
+; Conversion
+;-----------------------------------------------------------------------------
+(defrecord Conversion-record [from to pipeline]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:from this) os)
+    (serdes.core/write-String 2  {:optimize true} (:to this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 5 (:pipeline this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.Conversion"))
+
+(s/def :spyglass.streamline.alpha.ast.Conversion/from string?)
+(s/def :spyglass.streamline.alpha.ast.Conversion/to string?)
+
+(s/def ::Conversion-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.Conversion/from :spyglass.streamline.alpha.ast.Conversion/to ]))
+(def Conversion-defaults {:from "" :to "" :pipeline [] })
+
+(defn cis->Conversion
+  "CodedInputStream to Conversion"
+  [is]
+  (->> (tag-map Conversion-defaults
+         (fn [tag index]
+             (case index
+               1 [:from (serdes.core/cis->String is)]
+               2 [:to (serdes.core/cis->String is)]
+               5 [:pipeline (serdes.complex/cis->repeated ecis->Function is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->Conversion-record)))
+
+(defn ecis->Conversion
+  "Embedded CodedInputStream to Conversion"
+  [is]
+  (serdes.core/cis->embedded cis->Conversion is))
+
+(defn new-Conversion
+  "Creates a new instance from a map, similar to map->Conversion except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::Conversion-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::Conversion-spec init))))]}
+  (-> (merge Conversion-defaults init)
+      (cond-> (some? (get init :pipeline)) (update :pipeline #(map new-Function %)))
+      (map->Conversion-record)))
+
+(defn pb->Conversion
+  "Protobuf to Conversion"
+  [input]
+  (cis->Conversion (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record Conversion-meta {:type "spyglass.streamline.alpha.ast.Conversion" :decoder pb->Conversion})
 
 ;-----------------------------------------------------------------------------
 ; Function

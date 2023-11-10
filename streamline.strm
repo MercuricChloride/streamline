@@ -3,7 +3,14 @@ interface Erc721 {
     event Approval(address from, address to, uint256 tokenId);
 }
 
-Erc721 bayc = Erc721(0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d);
+convert:
+Erc721.Transfer -> SomethingElse {
+    (transfer) => SomethingElse {
+        from: transfer.from,
+        to: transfer.to,
+        tokenId: transfer.tokenId
+    };
+}
 
 struct SomethingElse {
      address from;
@@ -12,7 +19,7 @@ struct SomethingElse {
 }
 
 map transfers:
-(bayc.Transfer[]) -> SomethingElse[] {
+(Erc721.Transfer[]) -> SomethingElse[] {
     map (transfer) => SomethingElse {
         from: transfer.from,
         to: transfer.to,

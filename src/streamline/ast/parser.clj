@@ -3,7 +3,7 @@
 
 (def parser
   (insta/parser
-   "<S> = (module / struct-def / interface-def / contract-instance)*
+   "<S> = (module / struct-def / interface-def / contract-instance / conversion)*
 
     lambda = <'('> identifier* <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
     hof = parent-function <'('> identifier* <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
@@ -11,6 +11,8 @@
     <pipeline> = (lambda / hof)*
 
     contract-instance = identifier identifier <'='> identifier <'('> address <')'> <';'>
+
+    conversion = <'convert:'> type  <'->'> type <'{'> pipeline <'}'>
 
     <expression> = (number / string / struct-expression / array-expression / function-call / binary-expression / field-access / expr-ident )
 

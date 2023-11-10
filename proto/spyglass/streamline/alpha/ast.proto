@@ -11,6 +11,13 @@ message StreamlineFile {
     repeated string abi_json = 4;
     repeated string protobufs = 5;
     repeated ContractInstance instances = 6;
+    repeated Conversion conversions = 7;
+}
+
+message Conversion {
+    string from = 1;
+    string to = 2;
+    repeated Function pipeline = 5;
 }
 
 message ContractInstance {

@@ -15,6 +15,7 @@
     (write-ast ast)))
 
 (def ast (parser (slurp "streamline.strm")))
+(write-ast ast)
 (def astproto (ast->file ast))
 
 ;; (let [interfaces (:contracts astproto)
