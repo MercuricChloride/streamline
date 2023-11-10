@@ -25,6 +25,9 @@
 (declare cis->FieldAccess)
 (declare ecis->FieldAccess)
 (declare new-FieldAccess)
+(declare cis->StructLiteralField)
+(declare ecis->StructLiteralField)
+(declare new-StructLiteralField)
 (declare cis->BinaryOp)
 (declare ecis->BinaryOp)
 (declare new-BinaryOp)
@@ -40,9 +43,15 @@
 (declare cis->FunctionAbi)
 (declare ecis->FunctionAbi)
 (declare new-FunctionAbi)
+(declare cis->ContractInstance)
+(declare ecis->ContractInstance)
+(declare new-ContractInstance)
 (declare cis->Lambda)
 (declare ecis->Lambda)
 (declare new-Lambda)
+(declare cis->StructLiteral)
+(declare ecis->StructLiteral)
+(declare new-StructLiteral)
 (declare cis->EventAbi)
 (declare ecis->EventAbi)
 (declare new-EventAbi)
@@ -138,6 +147,7 @@
      (get-in origkeyval [:literal :int]) origkeyval
      (get-in origkeyval [:literal :str]) origkeyval
      (get-in origkeyval [:literal :boolean]) origkeyval
+     (get-in origkeyval [:literal :struct]) (update-in origkeyval [:literal :struct] new-StructLiteral)
      :default origkeyval))
 
 (defn write-Literal-literal [literal os]
@@ -148,6 +158,7 @@
          :int (serdes.core/write-Int64 1  {:optimize false} v os)
          :str (serdes.core/write-String 2  {:optimize false} v os)
          :boolean (serdes.core/write-Bool 3  {:optimize false} v os)
+         :struct (serdes.core/write-embedded 4 v os)
          nil)))
 
 
@@ -259,6 +270,58 @@
   (cis->FieldAccess (serdes.stream/new-cis input)))
 
 (def ^:protojure.protobuf.any/record FieldAccess-meta {:type "spyglass.streamline.alpha.ast.FieldAccess" :decoder pb->FieldAccess})
+
+;-----------------------------------------------------------------------------
+; StructLiteralField
+;-----------------------------------------------------------------------------
+(defrecord StructLiteralField-record [name value]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:name this) os)
+    (serdes.core/write-embedded 2 (:value this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.StructLiteralField"))
+
+(s/def :spyglass.streamline.alpha.ast.StructLiteralField/name string?)
+
+(s/def ::StructLiteralField-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StructLiteralField/name ]))
+(def StructLiteralField-defaults {:name "" })
+
+(defn cis->StructLiteralField
+  "CodedInputStream to StructLiteralField"
+  [is]
+  (->> (tag-map StructLiteralField-defaults
+         (fn [tag index]
+             (case index
+               1 [:name (serdes.core/cis->String is)]
+               2 [:value (ecis->Expression is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->StructLiteralField-record)))
+
+(defn ecis->StructLiteralField
+  "Embedded CodedInputStream to StructLiteralField"
+  [is]
+  (serdes.core/cis->embedded cis->StructLiteralField is))
+
+(defn new-StructLiteralField
+  "Creates a new instance from a map, similar to map->StructLiteralField except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::StructLiteralField-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::StructLiteralField-spec init))))]}
+  (-> (merge StructLiteralField-defaults init)
+      (cond-> (some? (get init :value)) (update :value new-Expression))
+      (map->StructLiteralField-record)))
+
+(defn pb->StructLiteralField
+  "Protobuf to StructLiteralField"
+  [input]
+  (cis->StructLiteralField (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record StructLiteralField-meta {:type "spyglass.streamline.alpha.ast.StructLiteralField" :decoder pb->StructLiteralField})
 
 ;-----------------------------------------------------------------------------
 ; BinaryOp
@@ -534,6 +597,60 @@
 (def ^:protojure.protobuf.any/record FunctionAbi-meta {:type "spyglass.streamline.alpha.ast.FunctionAbi" :decoder pb->FunctionAbi})
 
 ;-----------------------------------------------------------------------------
+; ContractInstance
+;-----------------------------------------------------------------------------
+(defrecord ContractInstance-record [address contract-interface instance-name]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:address this) os)
+    (serdes.core/write-String 2  {:optimize true} (:contract-interface this) os)
+    (serdes.core/write-String 3  {:optimize true} (:instance-name this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.ContractInstance"))
+
+(s/def :spyglass.streamline.alpha.ast.ContractInstance/address string?)
+(s/def :spyglass.streamline.alpha.ast.ContractInstance/contract-interface string?)
+(s/def :spyglass.streamline.alpha.ast.ContractInstance/instance-name string?)
+(s/def ::ContractInstance-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.ContractInstance/address :spyglass.streamline.alpha.ast.ContractInstance/contract-interface :spyglass.streamline.alpha.ast.ContractInstance/instance-name ]))
+(def ContractInstance-defaults {:address "" :contract-interface "" :instance-name "" })
+
+(defn cis->ContractInstance
+  "CodedInputStream to ContractInstance"
+  [is]
+  (->> (tag-map ContractInstance-defaults
+         (fn [tag index]
+             (case index
+               1 [:address (serdes.core/cis->String is)]
+               2 [:contract-interface (serdes.core/cis->String is)]
+               3 [:instance-name (serdes.core/cis->String is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->ContractInstance-record)))
+
+(defn ecis->ContractInstance
+  "Embedded CodedInputStream to ContractInstance"
+  [is]
+  (serdes.core/cis->embedded cis->ContractInstance is))
+
+(defn new-ContractInstance
+  "Creates a new instance from a map, similar to map->ContractInstance except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::ContractInstance-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::ContractInstance-spec init))))]}
+  (-> (merge ContractInstance-defaults init)
+      (map->ContractInstance-record)))
+
+(defn pb->ContractInstance
+  "Protobuf to ContractInstance"
+  [input]
+  (cis->ContractInstance (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record ContractInstance-meta {:type "spyglass.streamline.alpha.ast.ContractInstance" :decoder pb->ContractInstance})
+
+;-----------------------------------------------------------------------------
 ; Lambda
 ;-----------------------------------------------------------------------------
 (defrecord Lambda-record [inputs body]
@@ -584,6 +701,58 @@
   (cis->Lambda (serdes.stream/new-cis input)))
 
 (def ^:protojure.protobuf.any/record Lambda-meta {:type "spyglass.streamline.alpha.ast.Lambda" :decoder pb->Lambda})
+
+;-----------------------------------------------------------------------------
+; StructLiteral
+;-----------------------------------------------------------------------------
+(defrecord StructLiteral-record [name fields]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:name this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:fields this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.StructLiteral"))
+
+(s/def :spyglass.streamline.alpha.ast.StructLiteral/name string?)
+
+(s/def ::StructLiteral-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StructLiteral/name ]))
+(def StructLiteral-defaults {:name "" :fields [] })
+
+(defn cis->StructLiteral
+  "CodedInputStream to StructLiteral"
+  [is]
+  (->> (tag-map StructLiteral-defaults
+         (fn [tag index]
+             (case index
+               1 [:name (serdes.core/cis->String is)]
+               2 [:fields (serdes.complex/cis->repeated ecis->StructLiteralField is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->StructLiteral-record)))
+
+(defn ecis->StructLiteral
+  "Embedded CodedInputStream to StructLiteral"
+  [is]
+  (serdes.core/cis->embedded cis->StructLiteral is))
+
+(defn new-StructLiteral
+  "Creates a new instance from a map, similar to map->StructLiteral except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::StructLiteral-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::StructLiteral-spec init))))]}
+  (-> (merge StructLiteral-defaults init)
+      (cond-> (some? (get init :fields)) (update :fields #(map new-StructLiteralField %)))
+      (map->StructLiteral-record)))
+
+(defn pb->StructLiteral
+  "Protobuf to StructLiteral"
+  [input]
+  (cis->StructLiteral (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record StructLiteral-meta {:type "spyglass.streamline.alpha.ast.StructLiteral" :decoder pb->StructLiteral})
 
 ;-----------------------------------------------------------------------------
 ; EventAbi
@@ -697,22 +866,24 @@
 ;-----------------------------------------------------------------------------
 ; StreamlineFile
 ;-----------------------------------------------------------------------------
-(defrecord StreamlineFile-record [types contracts modules abi-json protobufs]
+(defrecord StreamlineFile-record [types contracts modules abi-json protobufs instances]
   pb/Writer
   (serialize [this os]
     (serdes.complex/write-repeated serdes.core/write-embedded 1 (:types this) os)
     (serdes.complex/write-repeated serdes.core/write-embedded 2 (:contracts this) os)
     (serdes.complex/write-repeated serdes.core/write-embedded 3 (:modules this) os)
     (serdes.complex/write-repeated serdes.core/write-String 4 (:abi-json this) os)
-    (serdes.complex/write-repeated serdes.core/write-String 5 (:protobufs this) os))
+    (serdes.complex/write-repeated serdes.core/write-String 5 (:protobufs this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 6 (:instances this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.StreamlineFile"))
 
 (s/def :spyglass.streamline.alpha.ast.StreamlineFile/abi-json (s/every string?))
 (s/def :spyglass.streamline.alpha.ast.StreamlineFile/protobufs (s/every string?))
+
 (s/def ::StreamlineFile-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StreamlineFile/abi-json :spyglass.streamline.alpha.ast.StreamlineFile/protobufs ]))
-(def StreamlineFile-defaults {:types [] :contracts [] :modules [] :abi-json [] :protobufs [] })
+(def StreamlineFile-defaults {:types [] :contracts [] :modules [] :abi-json [] :protobufs [] :instances [] })
 
 (defn cis->StreamlineFile
   "CodedInputStream to StreamlineFile"
@@ -725,6 +896,7 @@
                3 [:modules (serdes.complex/cis->repeated ecis->ModuleDef is)]
                4 [:abi-json (serdes.complex/cis->repeated serdes.core/cis->String is)]
                5 [:protobufs (serdes.complex/cis->repeated serdes.core/cis->String is)]
+               6 [:instances (serdes.complex/cis->repeated ecis->ContractInstance is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -745,6 +917,7 @@
       (cond-> (some? (get init :types)) (update :types #(map new-StructDef %)))
       (cond-> (some? (get init :contracts)) (update :contracts #(map new-ContractAbi %)))
       (cond-> (some? (get init :modules)) (update :modules #(map new-ModuleDef %)))
+      (cond-> (some? (get init :instances)) (update :instances #(map new-ContractInstance %)))
       (map->StreamlineFile-record)))
 
 (defn pb->StreamlineFile
@@ -1145,6 +1318,7 @@
                1 [:literal {:int (serdes.core/cis->Int64 is)}]
                2 [:literal {:str (serdes.core/cis->String is)}]
                3 [:literal {:boolean (serdes.core/cis->Bool is)}]
+               4 [:literal {:struct (ecis->StructLiteral is)}]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)

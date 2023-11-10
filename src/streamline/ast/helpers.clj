@@ -9,6 +9,19 @@
 (defmulti ->expr
   "Converts a expression into an expression node" first)
 
+(defmethod ->expr :struct-expression-field
+  [input]
+   (let [[_ field-name expr] input]
+        (ast/new-StructLiteralField {:name field-name
+                                     :value (->expr expr)})))
+
+(defmethod ->expr :struct-expression
+  [input]
+   (let [[_ struct-name & fields] input
+         fields (into [] (map ->expr fields))]
+     (ast/new-Expression {:expression {:literal {:literal {:struct-name struct-name
+                                                           :fields fields}}}})))
+
 (defmethod ->expr :function-call
   [input]
   (let [[_ & input] input
@@ -68,19 +81,23 @@
                                        :inputs inputs
                                        :body (->expr expression)}}})))
 
-(defn format-signature-output
-  "Converts a signature output to a string, if it is a :fully-qualified-identifier, otherwise returns the string as is"
- [output]
- (if (= (first output) :fully-qualified-identifier)
-   (string/join "." (rest output))
-   output))
- 
+(defn format-type
+  "Formats a type node into a string"
+  [type]
+  (let [type (rest type)]
+    (if (= (last type) "[]")
+        (str (string/join "." (butlast type) ) "[]")
+        (str (string/join "." type)))))
+
+(defn format-types
+  [types]
+  (map format-type types))
 
 (defn ->module-signature
   [input]
   (let [[_ & idents] input
-        inputs (butlast idents)
-        output (format-signature-output (last idents))]
+        inputs (format-types (butlast idents))
+        output (format-type (last idents))]
     (ast/new-ModuleSignature {:inputs (into [] inputs)
                               :output output})))
 
@@ -92,6 +109,14 @@
                            :identifier ident
                            :signature (->module-signature signature)
                            :pipeline (map ->function pipeline)})))
+
+(defn ->contract-instance
+  "Returns an AST node for a contract instance"
+  [input]
+  (let [[_ interface name _ [_ address]] input]
+    (ast/new-ContractInstance {:contract-interface interface
+                               :address address
+                               :instance-name name})))
 
 (defn ->struct-field
  [input]

@@ -1,51 +1,21 @@
-interface Foo {
-    event Transfer(address indexed from, address to, uint256 tokenId);
-    event Bid(uint256 marketId);
-
-    function foo(uint256 bar) public returns (uint256);
-}
-
 interface Erc721 {
     event Transfer(address from, address to, uint256 tokenId);
     event Approval(address from, address to, uint256 tokenId);
 }
 
-struct Zap {
-    address user;
-    uint256 balance;
-}
+Erc721 bayc = Erc721(0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d);
 
-struct Bar {
-    address user;
-    uint256 balance;
-}
-
-struct Pools {
-    address pool;
-}
-
-map super_simple:
-(Block, Clock) -> Erc721.Transfer {
- (block) => 42;
- (num) => "Streamline";
- (foo) => 42+42+69;
+struct SomethingElse {
+     address from;
+     address to;
+     uint tokenId;
 }
 
 map transfers:
-(Block, Clock) -> Erc721.Transfer {
- (block) => block.logs;
- map (log) => match_decode(Foo.Transfer, log);
-}
-
-map something_else:
-(map_transfers) -> Pools {
- (block) => foo(block);
-}
-
-map another_one:
-(Block) -> Pools {
- (block) => logs(block);
- filter (block) => logs(block);
- map (block) => logs(block);
- map (transfer,foo) => logs(block);
+(bayc.Transfer[]) -> SomethingElse[] {
+    map (transfer) => SomethingElse {
+        from: transfer.from,
+        to: transfer.to,
+        tokenId: transfer.tokenId
+    };
 }

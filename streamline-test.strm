@@ -42,8 +42,8 @@ map something_else:
  (block) => foo(block);
  filter (block) => Pools {
                      pools: [Pool{
-                                address: "asdfasdf";
-                              }];
+                                address: "asdfasdf"
+                              }]
                    };
 }
 

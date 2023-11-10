@@ -10,6 +10,13 @@ message StreamlineFile {
     repeated ModuleDef modules = 3;
     repeated string abi_json = 4;
     repeated string protobufs = 5;
+    repeated ContractInstance instances = 6;
+}
+
+message ContractInstance {
+    string address = 1;
+    string contract_interface = 2;
+    string instance_name = 3;
 }
 
 message ContractAbi {
@@ -106,7 +113,18 @@ message Literal {
         int64 int = 1;
         string str = 2;
         bool boolean = 3;
+        StructLiteral struct = 4;
     }
+}
+
+message StructLiteral {
+    string name = 1;
+    repeated StructLiteralField fields = 2;
+}
+
+message StructLiteralField {
+    string name = 1;
+    Expression value = 2;
 }
 
 message FunctionCall {

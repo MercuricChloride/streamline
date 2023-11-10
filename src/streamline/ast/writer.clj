@@ -4,7 +4,8 @@
    [clojure.java.io :as io]
    [protojure.protobuf :as protojure]
    [spyglass.streamline.alpha.ast :as ast]
-   [streamline.ast.helpers :refer [->abi ->map-module ->structdef]]
+   [streamline.ast.helpers :refer [->abi ->contract-instance ->map-module
+                                   ->structdef]]
    [streamline.protobuf.helpers :refer [contract->protobuf structs->protobuf]]))
 
 (defn write-file [input path]
@@ -24,20 +25,35 @@
   "Converts a streamline parse tree into a StreamlineFile protobuf message"
   [ast]
   (let [modules (filter #(= (first %) :module) ast)
+
         interfaces (filter #(= (first %) :interface-def) ast)
+
         struct-defs (filter #(= (first %) :struct-def) ast)
+
+        contract-instances (filter #(= (first %) :contract-instance) ast)
+
+        contract-instances (into [] (map ->contract-instance contract-instances))
+
         module-defs (map ->map-module modules)
+
         struct-defs (map ->structdef struct-defs)
+
         interfaces (into [] (map ->abi interfaces))
+
         abi-json (into [] (map #(interface->abijson %) interfaces))
+
         contract-protobufs (into [] (map contract->protobuf interfaces))
+
         struct-protobuf (structs->protobuf struct-defs)
+
         protobufs (conj contract-protobufs struct-protobuf)]
+
     (ast/new-StreamlineFile {:modules module-defs
                              :contracts interfaces
                              :types struct-defs
                              :abi-json abi-json
-                             :protobufs protobufs})))
+                             :protobufs protobufs
+                             :instances contract-instances})))
 
 (defn write-ast
   [ast]
