@@ -3,7 +3,10 @@
 SomethingElse
 fromaddress
 toaddress
-tokenIduintÂ
+tokenIduint
+)
+AnotherThing
+thingsSomethingElse[]Â
 Erc721©[{"type":"event","name":"Transfer","inputs":[{"type":"address","name":"from","indexed":false},{"type":"address","name":"to","indexed":false},{"type":"uint256","name":"tokenId","indexed":false}],"anonymous":false},{"type":"event","name":"Approval","inputs":[{"type":"address","name":"from","indexed":false},{"type":"address","name":"to","indexed":false},{"type":"uint256","name":"tokenId","indexed":false}],"anonymous":false}]E
 eventTransfer
 addressfrom
@@ -12,8 +15,8 @@
 eventApproval
 addressfrom
 addressto
-uint256tokenIdÂ
-map	transfers*
+uint256tokenIdÇ
+mapsomething_else*
 Erc721.TransferArraySomethingElseArray*ƒ€
 maptransfero
 m"k
@@ -26,7 +29,14 @@ m"k
 transferto"
 tokenId*
 
-transfertokenId"©[{"type":"event","name":"Transfer","inputs":[{"type":"address","name":"from","indexed":false},{"type":"address","name":"to","indexed":false},{"type":"uint256","name":"tokenId","indexed":false}],"anonymous":false},{"type":"event","name":"Approval","inputs":[{"type":"address","name":"from","indexed":false},{"type":"address","name":"to","indexed":false},{"type":"uint256","name":"tokenId","indexed":false}],"anonymous":false}]*þsyntax = "proto3";
+transfertokenIdq
+mapinto_another_thing"
+map_something_elseAnotherThing*2
+0
+things&
+$""
+AnotherThing
+thingsthings"©[{"type":"event","name":"Transfer","inputs":[{"type":"address","name":"from","indexed":false},{"type":"address","name":"to","indexed":false},{"type":"uint256","name":"tokenId","indexed":false}],"anonymous":false},{"type":"event","name":"Approval","inputs":[{"type":"address","name":"from","indexed":false},{"type":"address","name":"to","indexed":false},{"type":"uint256","name":"tokenId","indexed":false}],"anonymous":false}]*Õsyntax = "proto3";
 
 package streamline.test.Erc721;
 
@@ -42,10 +52,18 @@ string to = 2;
 string tokenId = 3;
 }
 
+message Events {
+repeated Transfer transfer = 1;
+
+repeated Approval approval = 2;
+}
+
+
+
 message TransferArray{
 repeated Transfer values = 1;
 }
-*Åsyntax = "proto3";
+*ƒsyntax = "proto3";
 
 package streamline.test.structs;
 
@@ -58,7 +76,19 @@ string tokenId = 3;
 message SomethingElseArray{
 repeated SomethingElse values = 1;
 }
-:Ÿ
+
+message AnotherThing{
+repeated SomethingElse things = 1;
+}
+
+
+:S
+SomethingElse[]AnotherThing*2
+0
+things&
+$""
+AnotherThing
+thingsthings:Ÿ
 Erc721.TransferSomethingElse*}
 {
 transfero
@@ -72,4 +102,4 @@ m"k
 transferto"
 tokenId*
 
-transfertokenId
+transfertokenIdBErc721.TransferBSomethingElse

@@ -18,11 +18,29 @@ struct SomethingElse {
      uint tokenId;
 }
 
-map transfers:
+struct AnotherThing {
+    SomethingElse[] things;
+}
+
+map something_else:
 (Erc721.Transfer[]) -> SomethingElse[] {
     map (transfer) => SomethingElse {
         from: transfer.from,
         to: transfer.to,
         tokenId: transfer.tokenId
     };
+}
+
+convert:
+SomethingElse[] -> AnotherThing {
+   (things) => AnotherThing {
+       things: things
+   };
+}
+
+map into_another_thing:
+(map_something_else) -> AnotherThing {
+   (things) => AnotherThing {
+       things: things
+   };
 }

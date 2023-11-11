@@ -38,7 +38,7 @@
     <store-update-policy> = ('Set' / 'SetNotExists' / 'Add' / 'Min' / 'Max') <'('> (identifier array?) <')'>
 
     struct-def = <'struct'> identifier <'{'> (struct-field <';'>)* <'}'>
-    struct-field = identifier identifier ('[' ']')?
+    struct-field = type identifier ('[' ']')?
 
     interface-def = <'interface'> identifier <'{'> ((event-def / function-def) <';'>)* <'}'>
 

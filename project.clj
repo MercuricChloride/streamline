@@ -9,7 +9,8 @@
                  [io.github.protojure/core "2.0.1"]
                  [io.github.protojure/google.protobuf "2.0.0"]
                  [rm-hull/infix "0.4.0"]
-                 [org.clojure/data.json "2.4.0"]]
+                 [org.clojure/data.json "2.4.0"]
+                 [camel-snake-kebab "0.4.3"]]
   :main ^:skip-aot streamline.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

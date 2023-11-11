@@ -869,7 +869,7 @@
 ;-----------------------------------------------------------------------------
 ; StreamlineFile
 ;-----------------------------------------------------------------------------
-(defrecord StreamlineFile-record [types contracts modules abi-json protobufs instances conversions]
+(defrecord StreamlineFile-record [types contracts modules abi-json protobufs instances conversions array-types]
   pb/Writer
   (serialize [this os]
     (serdes.complex/write-repeated serdes.core/write-embedded 1 (:types this) os)
@@ -878,7 +878,8 @@
     (serdes.complex/write-repeated serdes.core/write-String 4 (:abi-json this) os)
     (serdes.complex/write-repeated serdes.core/write-String 5 (:protobufs this) os)
     (serdes.complex/write-repeated serdes.core/write-embedded 6 (:instances this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 7 (:conversions this) os))
+    (serdes.complex/write-repeated serdes.core/write-embedded 7 (:conversions this) os)
+    (serdes.complex/write-repeated serdes.core/write-String 8 (:array-types this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.StreamlineFile"))
@@ -887,8 +888,9 @@
 (s/def :spyglass.streamline.alpha.ast.StreamlineFile/protobufs (s/every string?))
 
 
-(s/def ::StreamlineFile-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StreamlineFile/abi-json :spyglass.streamline.alpha.ast.StreamlineFile/protobufs ]))
-(def StreamlineFile-defaults {:types [] :contracts [] :modules [] :abi-json [] :protobufs [] :instances [] :conversions [] })
+(s/def :spyglass.streamline.alpha.ast.StreamlineFile/array-types (s/every string?))
+(s/def ::StreamlineFile-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StreamlineFile/abi-json :spyglass.streamline.alpha.ast.StreamlineFile/protobufs :spyglass.streamline.alpha.ast.StreamlineFile/array-types ]))
+(def StreamlineFile-defaults {:types [] :contracts [] :modules [] :abi-json [] :protobufs [] :instances [] :conversions [] :array-types [] })
 
 (defn cis->StreamlineFile
   "CodedInputStream to StreamlineFile"
@@ -903,6 +905,7 @@
                5 [:protobufs (serdes.complex/cis->repeated serdes.core/cis->String is)]
                6 [:instances (serdes.complex/cis->repeated ecis->ContractInstance is)]
                7 [:conversions (serdes.complex/cis->repeated ecis->Conversion is)]
+               8 [:array-types (serdes.complex/cis->repeated serdes.core/cis->String is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)

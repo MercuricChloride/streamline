@@ -58,7 +58,9 @@
 
         conversions (->> ast
                          (filter #(= (first %) :conversion))
-                         (map ->conversion))
+                         (map ->conversion)
+                         (into #{})
+                         (into []))
 
         abi-json (into [] (map interface->abijson interfaces))
 
@@ -73,7 +75,8 @@
                              :abi-json abi-json
                              :protobufs protobufs
                              :instances contract-instances
-                             :conversions conversions})))
+                             :conversions conversions
+                             :array-types (into [] array-types)})))
 
 (defn write-ast
   [ast]

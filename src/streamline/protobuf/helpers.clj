@@ -2,7 +2,8 @@
   (:require [streamline.ast.helpers :refer :all]
             [sf.substreams.v1 :as sf]
             [clojure.string :as string]
-            [spyglass.streamline.alpha.ast :as ast]))
+            [spyglass.streamline.alpha.ast :as ast]
+            [camel-snake-kebab.core :as csk]))
 
 (defn solidity-type->protobuf-type
   [input]
@@ -40,7 +41,7 @@
         type (solidity-type->protobuf-type type)
         name (:name input)]
     (if array?
-      (str "repeated " type " " name)
+      (str "repeated " (string/replace type #"\[\]" "") " " name)
       (str type " " name))))
 
 (defn event->protobuf
@@ -52,6 +53,20 @@
         index+inputs (map-indexed vector inputs)
         fields (string/join "\n" (map index+field->protobuf index+inputs))]
     (str "message " name "{\n" fields "\n}")))
+
+(defn events->protobuf
+  "Converts a list of events into a protobuf message"
+  [input]
+  (let [events (map event->protobuf input)
+        event-message (str "message Events {\n"
+                           (string/join "\n" (map-indexed (fn [index event]
+                                          (let [event-name (:name event)
+                                                field-name (csk/->snake_case event-name)
+                                                type-name (csk/->PascalCase event-name)
+                                                field-tag (inc index)]
+                                          (str "repeated " type-name " " field-name " = " field-tag ";\n")))
+                                          input)) "}\n\n")]
+    (str (string/join "\n\n" events) "\n\n" event-message)))
 
 (defn array-type->protobuf
   [input]
@@ -69,10 +84,10 @@
         fields (:fields input)
         fields (map input->protobuf fields)
         index+fields (map-indexed vector fields)
-        array-type (when (get array-types name)
+        as-array (when (get array-types name)
                      (array-type->protobuf name))
         fields (string/join "\n" (map index+field->protobuf index+fields))]
-    (str "message " name "{\n" fields "\n}\n\n" array-type)))
+    (str "message " name "{\n" fields "\n}\n\n" as-array)))
 
 (defn structs->protobuf
   [input array-types]
@@ -90,7 +105,7 @@
                          (filter #(string/starts-with? % name))
                          (map array-type->protobuf)
                          (string/join "\n\n"))
-        events (string/join "\n\n" (map event->protobuf (:events input)))
+        events (events->protobuf (:events input))
         protobufs (str events "\n\n" array-types)
         functions (:functions input)
         template (slurp "./templates/protobuf.txt")]

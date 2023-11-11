@@ -132,7 +132,7 @@
 (defn ->struct-field
  [input]
  (let [[_ type name] input]
-  (ast/new-StructField {:type type
+  (ast/new-StructField {:type (format-type type)
                         :name name})))
 
 

@@ -12,6 +12,7 @@ message StreamlineFile {
     repeated string protobufs = 5;
     repeated ContractInstance instances = 6;
     repeated Conversion conversions = 7;
+    repeated string array_types = 8;
 }
 
 message Conversion {

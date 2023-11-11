@@ -71,7 +71,7 @@
 
         outputs (map :output signatures)
         array-types (concat array-types (filter #(string/ends-with? % "[]") outputs))]
-    (map #(lookup-type % symbol-table) array-types)))
+    (map #(lookup-type % symbol-table) (into #{} array-types))))
 
 (defn flatten-types
   [types]
