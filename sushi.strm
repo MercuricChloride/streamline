@@ -1,0 +1,22 @@
+interface Sushi {
+    event PoolCreated(
+        address indexed token0,
+        address indexed token1,
+        uint24 indexed fee,
+        int24 tickSpacing,
+        address pool
+    );
+}
+
+struct Pools {
+     address token0;
+     address token1;
+}
+
+map pools_created:
+(Sushi.PoolCreated[]) -> Pools[] {
+    map (pool_created) => Pools {
+        token0: pool_created.token0,
+        token1: pool_created.token1,
+    };
+}

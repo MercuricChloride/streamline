@@ -6,16 +6,14 @@
 tokenIduint
 )
 AnotherThing
-thingsSomethingElse[]Â
-Erc721©[{"type":"event","name":"Transfer","inputs":[{"type":"address","name":"from","indexed":false},{"type":"address","name":"to","indexed":false},{"type":"uint256","name":"tokenId","indexed":false}],"anonymous":false},{"type":"event","name":"Approval","inputs":[{"type":"address","name":"from","indexed":false},{"type":"address","name":"to","indexed":false},{"type":"uint256","name":"tokenId","indexed":false}],"anonymous":false}]E
-eventTransfer
-addressfrom
-addressto
-uint256tokenIdE
-eventApproval
-addressfrom
-addressto
-uint256tokenIdÇ
+thingsSomethingElse[]À
+Erc721½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]v
+eventPoolCreated
+addresstoken0
+addresstoken1
+uint24fee
+int24tickSpacing
+addresspoolÇ
 mapsomething_else*
 Erc721.TransferArraySomethingElseArray*ƒ€
 maptransfero
@@ -36,26 +34,20 @@ m"k
 things&
 $""
 AnotherThing
-thingsthings"©[{"type":"event","name":"Transfer","inputs":[{"type":"address","name":"from","indexed":false},{"type":"address","name":"to","indexed":false},{"type":"uint256","name":"tokenId","indexed":false}],"anonymous":false},{"type":"event","name":"Approval","inputs":[{"type":"address","name":"from","indexed":false},{"type":"address","name":"to","indexed":false},{"type":"uint256","name":"tokenId","indexed":false}],"anonymous":false}]*Õsyntax = "proto3";
+thingsthings"½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]* syntax = "proto3";
 
 package streamline.test.Erc721;
 
-message Transfer{
-string from = 1;
-string to = 2;
-string tokenId = 3;
-}
-
-message Approval{
-string from = 1;
-string to = 2;
-string tokenId = 3;
+message PoolCreated{
+string token0 = 1;
+string token1 = 2;
+string fee = 3;
+string tickSpacing = 4;
+string pool = 5;
 }
 
 message Events {
-repeated Transfer transfer = 1;
-
-repeated Approval approval = 2;
+repeated PoolCreated pool_created = 1;
 }
 
 

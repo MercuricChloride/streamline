@@ -79,7 +79,7 @@
                              :array-types (into [] array-types)})))
 
 (defn write-ast
-  [ast]
+  [ast path]
   (let [file (protojure/->pb (ast->file ast))]
     (write-file file "./streamline-test.cstrm")))
 

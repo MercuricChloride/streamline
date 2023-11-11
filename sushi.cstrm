@@ -1,0 +1,55 @@
+
+-
+Pools
+token0address
+token1address¿
+Sushi½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]v
+eventPoolCreated
+addresstoken0
+addresstoken1
+uint24fee
+int24tickSpacing
+addresspoolª
+mappools_created$
+Sushi.PoolCreatedArray
+PoolsArray*nl
+mappool_createdW
+U"S
+Pools$
+token0*
+pool_createdtoken0$
+token1*
+pool_createdtoken1"½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]*¥syntax = "proto3";
+
+package streamline.test.Sushi;
+
+message PoolCreated{
+string token0 = 1;
+string token1 = 2;
+string fee = 3;
+string tickSpacing = 4;
+string pool = 5;
+}
+
+message Events {
+repeated PoolCreated pool_created = 1;
+}
+
+
+
+message PoolCreatedArray{
+repeated PoolCreated values = 1;
+}
+*Ÿsyntax = "proto3";
+
+package streamline.test.structs;
+
+message Pools{
+string token0 = 1;
+string token1 = 2;
+}
+
+message PoolsArray{
+repeated Pools values = 1;
+}
+BPoolsBSushi.PoolCreated

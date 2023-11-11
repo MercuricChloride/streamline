@@ -43,7 +43,7 @@
     interface-def = <'interface'> identifier <'{'> ((event-def / function-def) <';'>)* <'}'>
 
     event-def = <'event'> identifier <'('> event-param* <')'>
-    <event-param> = (non-indexed-event-param / indexed-event-param)
+    <event-param> = (indexed-event-param / non-indexed-event-param)
     indexed-event-param = identifier <'indexed'> identifier
     non-indexed-event-param = identifier identifier
 

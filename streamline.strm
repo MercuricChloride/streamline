@@ -1,6 +1,11 @@
 interface Erc721 {
-    event Transfer(address from, address to, uint256 tokenId);
-    event Approval(address from, address to, uint256 tokenId);
+    event PoolCreated(
+        address indexed token0,
+        address indexed token1,
+        uint24 indexed fee,
+        int24 tickSpacing,
+        address pool
+    );
 }
 
 convert:

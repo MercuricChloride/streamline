@@ -12,14 +12,10 @@
   [& args]
   (let [path (first args)
         ast (parser (slurp path))]
-    (write-ast ast)))
+    (write-ast ast path)))
 
 (def ast (parser (slurp "streamline.strm")))
-(write-ast ast)
-(def astproto (ast->file ast))
-
-;; (let [interfaces (:contracts astproto)
-;;       struct-defs (:types astproto)
-;;       contract-instances (:instances astproto)
-;;       table (symbol-table interfaces struct-defs contract-instances)]
-;;   (map array-type->protobuf (get-array-types (:modules astproto) table)))
+(def sushi (parser (slurp "sushi.strm")))
+(write-ast sushi "sushi.cstrm")
+(write-ast ast "streamline-test.cstrm")
+(def astproto (ast->file sushi))
