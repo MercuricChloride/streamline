@@ -16,9 +16,6 @@
 
 (def test-struct [:struct-def "Zap" [:struct-field "user" "address[]"] [:struct-field "balance" "uint256"]])
 
-(defmulti ->protobuf
-  "converts a parse tree node into a protobuf message" first)
-
 (defn index+field->protobuf
   "Converts a vector of [index :struct-field] into a protobuf field"
   [input]
@@ -26,28 +23,21 @@
         index (inc index)] ; protobufs are 1 indexed bleh
     (str field " = " index ";")))
 
-(defmethod ->protobuf :struct-def
-  [input]
-  (let [[_ struct-name & fields] input
-        fields (map ->protobuf fields)
-        index+fields (map-indexed vector fields)
-        fields (string/join "\n" (map index+field->protobuf index+fields))]
-    (str "message " struct-name "{\n" fields "\n}")))
-
 (defn input->protobuf
   [input]
   (let [type (:type input)
         array? (string/ends-with? type "[]")
         type (solidity-type->protobuf-type type)
-        name (:name input)]
+        name (csk/->snake_case (:name input))]
     (if array?
       (str "repeated " (string/replace type #"\[\]" "") " " name)
       (str type " " name))))
 
 (defn event->protobuf
-  "Converts a EventAbi node into a protobuf message"
+  "Converts an EventAbi node into a protobuf message"
   [input]
-  (let [name (:name input)
+  (let [name (->> (:name input)
+                  csk/->PascalCase)
         inputs (:inputs input)
         inputs (map input->protobuf inputs)
         index+inputs (map-indexed vector inputs)

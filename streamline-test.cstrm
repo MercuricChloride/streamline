@@ -47,15 +47,15 @@ m"k
 tokenIduint
 )
 AnotherThing
-thingsSomethingElse[]"½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]BErc721.TransferBSomethingElse* syntax = "proto3";
+thingsSomethingElse[]"½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]BErc721.TransferBSomethingElse*£syntax = "proto3";
 
 package streamline_test.Erc721;
 
 message PoolCreated{
-string token0 = 1;
-string token1 = 2;
+string token_0 = 1;
+string token_1 = 2;
 string fee = 3;
-string tickSpacing = 4;
+string tick_spacing = 4;
 string pool = 5;
 }
 
@@ -68,14 +68,14 @@ repeated PoolCreated pool_created = 1;
 message TransferArray{
 repeated Transfer values = 1;
 }
-*ƒsyntax = "proto3";
+*„syntax = "proto3";
 
 package streamline_test.structs;
 
 message SomethingElse{
 string from = 1;
 string to = 2;
-string tokenId = 3;
+string token_id = 3;
 }
 
 message SomethingElseArray{
