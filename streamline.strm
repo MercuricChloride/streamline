@@ -8,6 +8,8 @@ interface Erc721 {
         int24 tickSpacing,
         address pool
     );
+
+    function foo(address a) external;
 }
 
 convert:
@@ -30,7 +32,7 @@ struct AnotherThing {
 }
 
 map something_else:
-(Erc721.Transfer[]) -> SomethingElse[] {
+(Erc721.Transfer[] Foo Bar) -> SomethingElse[] {
     map (transfer) => SomethingElse {
         from: transfer.from,
         to: transfer.to,

@@ -9,7 +9,7 @@
     <file-type> = 'stream' / 'sink'
 
     lambda = <'('> identifier* <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
-    hof = parent-function <'('> identifier* <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
+    hof = parent-function <'('> module-inputs <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
     <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
     <pipeline> = (lambda / hof)*
 
@@ -36,9 +36,12 @@
     module = module-type identifier <':'> module-signature <'{'> pipeline  <'}'>
     <module-type> = 'map' | 'store'
     module-signature = map-module-signature / store-module-signature
-    <map-module-signature> = <'('> type* <')'> <'->'> type
+    <map-module-signature> = <'('> module-inputs <')'> <'->'> module-output
     <store-module-signature> = <'('> (identifier array?)* <')'> <'->'> store-update-policy
     <store-update-policy> = ('Set' / 'SetNotExists' / 'Add' / 'Min' / 'Max') <'('> (identifier array?) <')'>
+
+    module-inputs = type*
+    module-output = type
 
     struct-def = <'struct'> identifier <'{'> (struct-field <';'>)* <'}'>
     struct-field = type identifier ('[' ']')?
@@ -47,27 +50,27 @@
 
     event-def = <'event'> identifier <'('> event-param* <')'>
     <event-param> = (indexed-event-param / non-indexed-event-param)
-    indexed-event-param = identifier <'indexed'> identifier
-    non-indexed-event-param = identifier identifier
+    indexed-event-param = type <'indexed'> identifier
+    non-indexed-event-param = type identifier
 
     <function-def> = (function-w-return / function-wo-return)
     function-w-return = <'function'> identifier <'('> function-params <')'> <function-modifier*> returns
     function-wo-return = <'function'> identifier <'('> function-params <')'> <function-modifier*>
     function-params = function-param*
-    function-param = identifier <location?> identifier
+    function-param = type <location?> identifier
     location = 'memory' / 'storage' / 'calldata'
     function-modifier = visibility / mutability
     visibility = 'public' / 'private' / 'internal' / 'external'
     mutability = 'view' / 'pure'
     returns = <'returns'> <'('> return-param* <')'>
     <return-param> = (named-return / unnamed-return)
-    unnamed-return = identifier <location?>
-    named-return = identifier <location?> identifier
+    unnamed-return = type <location?>
+    named-return = type <location?> identifier
 
     <identifier> = #'[a-zA-Z_][a-zA-Z0-9_]*'
     <array-identifier> = #'[a-zA-Z_][a-zA-Z0-9_]*' '[]'
     <fully-qualified-identifier> = identifier (<'.'> (array-identifier / identifier))+
-    type = (fully-qualified-identifier / array-identifier / identifier)?
+    type = (fully-qualified-identifier / array-identifier / identifier)
     number = #'[0-9]+'
     string = <'\"'> #'[^\"\\n]*' <'\"'>
     boolean = 'true' / 'false'

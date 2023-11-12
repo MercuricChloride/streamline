@@ -1,7 +1,6 @@
-‰
-mappools_created$
-Sushi.PoolCreatedArray
-PoolsArray*MK
+¥
+mappools_created@
+%[:type "Sushi" "PoolCreated" "Array"][:type "Pools" "Array"]*MK
 mappA
 ?"=
 Pools
@@ -12,7 +11,7 @@ PoolsArray*MK
 -
 Pools
 token0address
-token1address"½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]BPoolsBSushi.PoolCreated*¦syntax = "proto3";
+token1address"½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]*êsyntax = "proto3";
 
 package sushiswapTest.Sushi;
 
@@ -30,10 +29,8 @@ repeated PoolCreated pool_created = 1;
 
 
 
-message PoolCreatedArray{
-repeated PoolCreated values = 1;
-}
-*Ÿsyntax = "proto3";
+
+*osyntax = "proto3";
 
 package sushiswapTest.structs;
 
@@ -42,9 +39,7 @@ string token_0 = 1;
 string token_1 = 2;
 }
 
-message PoolsArray{
-repeated Pools values = 1;
-}
+
 ¿
 Sushi½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]v
 eventPoolCreated

@@ -1,6 +1,6 @@
-Ç
-mapsomething_else*
-Erc721.TransferArraySomethingElseArray*ƒ€
+ÿ
+mapsomething_elseb
+?[:type "Erc721" "Transfer" "Array"].[:type "Foo"].[:type "Bar"][:type "SomethingElse" "Array"]*ƒ€
 maptransfero
 m"k
 SomethingElse
@@ -12,9 +12,9 @@ m"k
 transferto"
 tokenId*
 
-transfertokenIdq
-mapinto_another_thing"
-map_something_elseAnotherThing*2
+transfertokenId…
+mapinto_another_thing6
+[:type "map_something_else"][:type "AnotherThing"]*2
 0
 things&
 $""
@@ -47,7 +47,7 @@ m"k
 tokenIduint
 )
 AnotherThing
-thingsSomethingElse[]"½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]BErc721.TransferBSomethingElse*£syntax = "proto3";
+thingsSomethingElse[]"½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]*ísyntax = "proto3";
 
 package streamline_test.Erc721;
 
@@ -65,10 +65,8 @@ repeated PoolCreated pool_created = 1;
 
 
 
-message TransferArray{
-repeated Transfer values = 1;
-}
-*„syntax = "proto3";
+
+*Äsyntax = "proto3";
 
 package streamline_test.structs;
 
@@ -78,9 +76,7 @@ string to = 2;
 string token_id = 3;
 }
 
-message SomethingElseArray{
-repeated SomethingElse values = 1;
-}
+
 
 message AnotherThing{
 repeated SomethingElse things = 1;

@@ -4,6 +4,7 @@
    [streamline.ast.analysis.type-validation :refer [symbol-table]]
    [streamline.ast.parser :refer [parser]]
    [streamline.ast.writer :refer [ast->file write-ast]]
+   [streamline.ast.new-parser :refer [->node]]
    [streamline.protobuf.helpers :refer [array-type->protobuf]])
   (:gen-class))
 
@@ -15,6 +16,10 @@
     (write-ast ast path)))
 
 (def ast (parser (slurp "streamline.strm")))
+
+(let [first-interface (first (filter #(= :interface-def (first %)) ast))]
+  (->node first-interface))
+
 (def sushi (parser (slurp "sushi.strm")))
 (write-ast sushi "sushi.cstrm")
 (write-ast ast "streamline-test.cstrm")
