@@ -13,6 +13,17 @@ message StreamlineFile {
     repeated ContractInstance instances = 6;
     repeated Conversion conversions = 7;
     repeated string array_types = 8;
+    FileMeta meta = 9;
+}
+
+enum StreamlineKind {
+    SUBSTREAM = 0;
+    SINK = 1;
+}
+
+message FileMeta {
+    string name = 1;
+    StreamlineKind kind = 2;
 }
 
 message Conversion {

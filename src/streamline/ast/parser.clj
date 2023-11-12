@@ -3,7 +3,10 @@
 
 (def parser
   (insta/parser
-   "<S> = (module / struct-def / interface-def / contract-instance / conversion)*
+   "<S> = file-meta (module / struct-def / interface-def / contract-instance / conversion)*
+
+    file-meta = file-type identifier <';'>
+    <file-type> = 'stream' / 'sink'
 
     lambda = <'('> identifier* <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
     hof = parent-function <'('> identifier* <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )

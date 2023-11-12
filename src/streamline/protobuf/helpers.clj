@@ -90,16 +90,16 @@
     (str "message " name "{\n" fields "\n}\n\n" as-array)))
 
 (defn structs->protobuf
-  [input array-types]
+  [input array-types file-namespace]
   (let [template (slurp "./templates/protobuf.txt")
         types (string/join "\n\n" (map #(struct->protobuf % (into #{} array-types)) input))]
     (-> template
-        (string/replace "$$PACKAGE-NAME$$" (str "streamline.test.structs"))
+        (string/replace "$$PACKAGE-NAME$$" (str file-namespace ".structs"))
         (string/replace "$$TYPES$$" types))))
 
 (defn contract->protobuf
   "Converts a Contract AST node into a protobuf file"
-  [input array-types]
+  [input array-types file-namespace]
   (let [name (:name input)
         array-types (->> array-types
                          (filter #(string/starts-with? % name))
@@ -110,5 +110,5 @@
         functions (:functions input)
         template (slurp "./templates/protobuf.txt")]
     (-> template
-        (string/replace "$$PACKAGE-NAME$$" (str "streamline.test." name))
+        (string/replace "$$PACKAGE-NAME$$" (str file-namespace "." name))
         (string/replace "$$TYPES$$" protobufs))))

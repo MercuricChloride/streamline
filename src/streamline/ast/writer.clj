@@ -35,10 +35,23 @@
                output (string/replace output "[]" "Array")]
            (assoc module-def :signature {:inputs inputs :output output}))) module-defs))
 
+(defn ->file-meta
+  [kind name]
+  (let [kind (cond (= kind "stream") :substream
+                   (= kind "sink") :sink
+                   :else (throw (Exception. "Invalid streamline kind")))]
+    (ast/new-FileMeta {:name name
+                       :kind kind})))
+
 (defn ast->file
   "Converts a streamline parse tree into a StreamlineFile protobuf message"
   [ast]
-  (let [module-defs (->> ast
+  (let [file-meta (->> ast
+                              (filter #(= (first %) :file-meta))
+                              first
+                              rest
+                              (apply ->file-meta))
+        module-defs (->> ast
                          (filter #(= (first %) :module))
                          (map ->map-module))
 
@@ -64,11 +77,12 @@
 
         abi-json (into [] (map interface->abijson interfaces))
 
-        contract-protobufs (into [] (map #(contract->protobuf % array-types) interfaces))
+        contract-protobufs (into [] (map #(contract->protobuf % array-types (:name file-meta)) interfaces))
 
-        struct-protobuf (structs->protobuf struct-defs array-types)
+        struct-protobuf (structs->protobuf struct-defs array-types (:name file-meta))
 
         protobufs (conj contract-protobufs struct-protobuf)]
+
     (ast/new-StreamlineFile {:modules (format-module-signatures  module-defs)
                              :contracts interfaces
                              :types struct-defs
@@ -76,12 +90,13 @@
                              :protobufs protobufs
                              :instances contract-instances
                              :conversions conversions
-                             :array-types (into [] array-types)})))
+                             :array-types (into [] array-types)
+                             :meta file-meta})))
 
 (defn write-ast
   [ast path]
   (let [file (protojure/->pb (ast->file ast))]
-    (write-file file "./streamline-test.cstrm")))
+    (write-file file path)))
 
 (defn write-abis
   [ast]

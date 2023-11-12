@@ -1,3 +1,5 @@
+stream streamline_test;
+
 interface Erc721 {
     event PoolCreated(
         address indexed token0,

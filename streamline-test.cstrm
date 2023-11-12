@@ -1,19 +1,4 @@
-
-@
-SomethingElse
-fromaddress
-toaddress
-tokenIduint
-)
-AnotherThing
-thingsSomethingElse[]À
-Erc721½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]v
-eventPoolCreated
-addresstoken0
-addresstoken1
-uint24fee
-int24tickSpacing
-addresspoolÇ
+Ç
 mapsomething_else*
 Erc721.TransferArraySomethingElseArray*ƒ€
 maptransfero
@@ -34,9 +19,37 @@ m"k
 things&
 $""
 AnotherThing
-thingsthings"½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]* syntax = "proto3";
+thingsthings:S
+SomethingElse[]AnotherThing*2
+0
+things&
+$""
+AnotherThing
+thingsthings:Ÿ
+Erc721.TransferSomethingElse*}
+{
+transfero
+m"k
+SomethingElse
+from*
 
-package streamline.test.Erc721;
+transferfrom
+to*
+
+transferto"
+tokenId*
+
+transfertokenId
+@
+SomethingElse
+fromaddress
+toaddress
+tokenIduint
+)
+AnotherThing
+thingsSomethingElse[]"½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]BErc721.TransferBSomethingElse* syntax = "proto3";
+
+package streamline_test.Erc721;
 
 message PoolCreated{
 string token0 = 1;
@@ -57,7 +70,7 @@ repeated Transfer values = 1;
 }
 *ƒsyntax = "proto3";
 
-package streamline.test.structs;
+package streamline_test.structs;
 
 message SomethingElse{
 string from = 1;
@@ -74,24 +87,12 @@ repeated SomethingElse things = 1;
 }
 
 
-:S
-SomethingElse[]AnotherThing*2
-0
-things&
-$""
-AnotherThing
-thingsthings:Ÿ
-Erc721.TransferSomethingElse*}
-{
-transfero
-m"k
-SomethingElse
-from*
-
-transferfrom
-to*
-
-transferto"
-tokenId*
-
-transfertokenIdBErc721.TransferBSomethingElse
+À
+Erc721½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]v
+eventPoolCreated
+addresstoken0
+addresstoken1
+uint24fee
+int24tickSpacing
+addresspoolJ
+streamline_test

@@ -1,27 +1,20 @@
-
+â
+mappools_created$
+Sushi.PoolCreatedArray
+PoolsArray*MK
+mappA
+?"=
+Pools
+token0*
+ptoken0
+token1*
+ptoken1
 -
 Pools
 token0address
-token1addressø
-SushiΩ[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]v
-eventPoolCreated
-addresstoken0
-addresstoken1
-uint24fee
-int24tickSpacing
-addresspool™
-mappools_created$
-Sushi.PoolCreatedArray
-PoolsArray*nl
-mappool_createdW
-U"S
-Pools$
-token0*
-pool_createdtoken0$
-token1*
-pool_createdtoken1"Ω[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]*•syntax = "proto3";
+token1address"Ω[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]BPoolsBSushi.PoolCreated*£syntax = "proto3";
 
-package streamline.test.Sushi;
+package sushiswapTest.Sushi;
 
 message PoolCreated{
 string token0 = 1;
@@ -40,9 +33,9 @@ repeated PoolCreated pool_created = 1;
 message PoolCreatedArray{
 repeated PoolCreated values = 1;
 }
-*üsyntax = "proto3";
+*ùsyntax = "proto3";
 
-package streamline.test.structs;
+package sushiswapTest.structs;
 
 message Pools{
 string token0 = 1;
@@ -52,4 +45,12 @@ string token1 = 2;
 message PoolsArray{
 repeated Pools values = 1;
 }
-BPoolsBSushi.PoolCreated
+ø
+SushiΩ[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]v
+eventPoolCreated
+addresstoken0
+addresstoken1
+uint24fee
+int24tickSpacing
+addresspoolJ
+sushiswapTest

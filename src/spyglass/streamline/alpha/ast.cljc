@@ -40,6 +40,9 @@
 (declare cis->StructDef)
 (declare ecis->StructDef)
 (declare new-StructDef)
+(declare cis->FileMeta)
+(declare ecis->FileMeta)
+(declare new-FileMeta)
 (declare cis->FunctionAbi)
 (declare ecis->FunctionAbi)
 (declare new-FunctionAbi)
@@ -88,6 +91,37 @@
 (declare cis->Literal)
 (declare ecis->Literal)
 (declare new-Literal)
+
+;;----------------------------------------------------------------------------------
+;;----------------------------------------------------------------------------------
+;; Enumerations
+;;----------------------------------------------------------------------------------
+;;----------------------------------------------------------------------------------
+
+;-----------------------------------------------------------------------------
+; StreamlineKind
+;-----------------------------------------------------------------------------
+(def StreamlineKind-default :substream)
+
+(def StreamlineKind-val2label {
+  0 :substream
+  1 :sink})
+
+(def StreamlineKind-label2val (set/map-invert StreamlineKind-val2label))
+
+(defn cis->StreamlineKind [is]
+  (let [val (serdes.core/cis->Enum is)]
+    (get StreamlineKind-val2label val val)))
+
+(defn- get-StreamlineKind [value]
+  {:pre [(or (int? value) (contains? StreamlineKind-label2val value))]}
+  (get StreamlineKind-label2val value value))
+
+(defn write-StreamlineKind
+  ([tag value os] (write-StreamlineKind tag {:optimize false} value os))
+  ([tag options value os]
+   (serdes.core/write-Enum tag options (get-StreamlineKind value) os)))
+
 
 ;;----------------------------------------------------------------------------------
 ;;----------------------------------------------------------------------------------
@@ -538,6 +572,57 @@
 (def ^:protojure.protobuf.any/record StructDef-meta {:type "spyglass.streamline.alpha.ast.StructDef" :decoder pb->StructDef})
 
 ;-----------------------------------------------------------------------------
+; FileMeta
+;-----------------------------------------------------------------------------
+(defrecord FileMeta-record [name kind]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:name this) os)
+    (write-StreamlineKind 2  {:optimize true} (:kind this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.FileMeta"))
+
+(s/def :spyglass.streamline.alpha.ast.FileMeta/name string?)
+(s/def :spyglass.streamline.alpha.ast.FileMeta/kind (s/or :keyword keyword? :int int?))
+(s/def ::FileMeta-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.FileMeta/name :spyglass.streamline.alpha.ast.FileMeta/kind ]))
+(def FileMeta-defaults {:name "" :kind StreamlineKind-default })
+
+(defn cis->FileMeta
+  "CodedInputStream to FileMeta"
+  [is]
+  (->> (tag-map FileMeta-defaults
+         (fn [tag index]
+             (case index
+               1 [:name (serdes.core/cis->String is)]
+               2 [:kind (cis->StreamlineKind is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->FileMeta-record)))
+
+(defn ecis->FileMeta
+  "Embedded CodedInputStream to FileMeta"
+  [is]
+  (serdes.core/cis->embedded cis->FileMeta is))
+
+(defn new-FileMeta
+  "Creates a new instance from a map, similar to map->FileMeta except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::FileMeta-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::FileMeta-spec init))))]}
+  (-> (merge FileMeta-defaults init)
+      (map->FileMeta-record)))
+
+(defn pb->FileMeta
+  "Protobuf to FileMeta"
+  [input]
+  (cis->FileMeta (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record FileMeta-meta {:type "spyglass.streamline.alpha.ast.FileMeta" :decoder pb->FileMeta})
+
+;-----------------------------------------------------------------------------
 ; FunctionAbi
 ;-----------------------------------------------------------------------------
 (defrecord FunctionAbi-record [type name inputs outputs state-mutability]
@@ -869,28 +954,30 @@
 ;-----------------------------------------------------------------------------
 ; StreamlineFile
 ;-----------------------------------------------------------------------------
-(defrecord StreamlineFile-record [types contracts modules abi-json protobufs instances conversions array-types]
+(defrecord StreamlineFile-record [modules conversions types abi-json array-types protobufs contracts meta instances]
   pb/Writer
   (serialize [this os]
-    (serdes.complex/write-repeated serdes.core/write-embedded 1 (:types this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:contracts this) os)
     (serdes.complex/write-repeated serdes.core/write-embedded 3 (:modules this) os)
-    (serdes.complex/write-repeated serdes.core/write-String 4 (:abi-json this) os)
-    (serdes.complex/write-repeated serdes.core/write-String 5 (:protobufs this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 6 (:instances this) os)
     (serdes.complex/write-repeated serdes.core/write-embedded 7 (:conversions this) os)
-    (serdes.complex/write-repeated serdes.core/write-String 8 (:array-types this) os))
+    (serdes.complex/write-repeated serdes.core/write-embedded 1 (:types this) os)
+    (serdes.complex/write-repeated serdes.core/write-String 4 (:abi-json this) os)
+    (serdes.complex/write-repeated serdes.core/write-String 8 (:array-types this) os)
+    (serdes.complex/write-repeated serdes.core/write-String 5 (:protobufs this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:contracts this) os)
+    (serdes.core/write-embedded 9 (:meta this) os)
+    (serdes.complex/write-repeated serdes.core/write-embedded 6 (:instances this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.StreamlineFile"))
 
 (s/def :spyglass.streamline.alpha.ast.StreamlineFile/abi-json (s/every string?))
+(s/def :spyglass.streamline.alpha.ast.StreamlineFile/array-types (s/every string?))
 (s/def :spyglass.streamline.alpha.ast.StreamlineFile/protobufs (s/every string?))
 
 
-(s/def :spyglass.streamline.alpha.ast.StreamlineFile/array-types (s/every string?))
-(s/def ::StreamlineFile-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StreamlineFile/abi-json :spyglass.streamline.alpha.ast.StreamlineFile/protobufs :spyglass.streamline.alpha.ast.StreamlineFile/array-types ]))
-(def StreamlineFile-defaults {:types [] :contracts [] :modules [] :abi-json [] :protobufs [] :instances [] :conversions [] :array-types [] })
+
+(s/def ::StreamlineFile-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StreamlineFile/abi-json :spyglass.streamline.alpha.ast.StreamlineFile/array-types :spyglass.streamline.alpha.ast.StreamlineFile/protobufs ]))
+(def StreamlineFile-defaults {:modules [] :conversions [] :types [] :abi-json [] :array-types [] :protobufs [] :contracts [] :instances [] })
 
 (defn cis->StreamlineFile
   "CodedInputStream to StreamlineFile"
@@ -898,14 +985,15 @@
   (->> (tag-map StreamlineFile-defaults
          (fn [tag index]
              (case index
-               1 [:types (serdes.complex/cis->repeated ecis->StructDef is)]
-               2 [:contracts (serdes.complex/cis->repeated ecis->ContractAbi is)]
                3 [:modules (serdes.complex/cis->repeated ecis->ModuleDef is)]
-               4 [:abi-json (serdes.complex/cis->repeated serdes.core/cis->String is)]
-               5 [:protobufs (serdes.complex/cis->repeated serdes.core/cis->String is)]
-               6 [:instances (serdes.complex/cis->repeated ecis->ContractInstance is)]
                7 [:conversions (serdes.complex/cis->repeated ecis->Conversion is)]
+               1 [:types (serdes.complex/cis->repeated ecis->StructDef is)]
+               4 [:abi-json (serdes.complex/cis->repeated serdes.core/cis->String is)]
                8 [:array-types (serdes.complex/cis->repeated serdes.core/cis->String is)]
+               5 [:protobufs (serdes.complex/cis->repeated serdes.core/cis->String is)]
+               2 [:contracts (serdes.complex/cis->repeated ecis->ContractAbi is)]
+               9 [:meta (ecis->FileMeta is)]
+               6 [:instances (serdes.complex/cis->repeated ecis->ContractInstance is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -928,6 +1016,7 @@
       (cond-> (some? (get init :modules)) (update :modules #(map new-ModuleDef %)))
       (cond-> (some? (get init :instances)) (update :instances #(map new-ContractInstance %)))
       (cond-> (some? (get init :conversions)) (update :conversions #(map new-Conversion %)))
+      (cond-> (some? (get init :meta)) (update :meta new-FileMeta))
       (map->StreamlineFile-record)))
 
 (defn pb->StreamlineFile
