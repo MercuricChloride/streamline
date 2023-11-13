@@ -17,10 +17,43 @@
 
 (def ast (parser (slurp "streamline.strm")))
 
-(let [first-interface (first (filter #(= :interface-def (first %)) ast))]
-  (->node first-interface))
+(->> ast
+     (map ->node)
+     (map class))
+
+(defmulti store-node (fn [node acc]
+                       (class node)))
+
+(defmethod store-node :default
+  [_ acc]
+  acc)
+
+(defmethod store-node spyglass.streamline.alpha.ast.FileMeta-record
+  [node acc]
+  (assoc acc :file-meta node))
+
+(defmethod store-node spyglass.streamline.alpha.ast.StructDef-record
+  [node acc]
+  (assoc acc :types (conj (:types acc) node)))
+
+(defmethod store-node spyglass.streamline.alpha.ast.ModuleDef-record
+  [node acc]
+  (assoc acc :module (conj (:module acc) node)))
+
+(defn format-ast
+  [parse-tree]
+  (loop [parse-tree parse-tree
+         acc {}]
+    (if (empty? parse-tree)
+      acc
+      (let [node (->node (first parse-tree))
+            remaining (rest parse-tree)]
+        (recur remaining (store-node node acc))))))
+
+(format-ast ast)
 
 (def sushi (parser (slurp "sushi.strm")))
+
 (write-ast sushi "sushi.cstrm")
 (write-ast ast "streamline-test.cstrm")
 (def astproto (ast->file sushi))

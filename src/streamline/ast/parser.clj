@@ -8,7 +8,7 @@
     file-meta = file-type identifier <';'>
     <file-type> = 'stream' / 'sink'
 
-    lambda = <'('> identifier* <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
+    lambda = <'('> module-inputs <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
     hof = parent-function <'('> module-inputs <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
     <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
     <pipeline> = (lambda / hof)*

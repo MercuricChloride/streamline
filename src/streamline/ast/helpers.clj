@@ -227,4 +227,3 @@
       :abi-json abi-json
       :functions functions
       :events events})))
-      
