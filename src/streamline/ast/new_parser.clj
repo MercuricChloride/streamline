@@ -6,7 +6,7 @@
    [protojure.protobuf :as protojure]
    [spyglass.streamline.alpha.ast :as ast]
    [streamline.ast.analysis.type-validation :refer [get-array-types
-                                                    symbol-table]]
+                                                    construct-symbol-table]]
    [streamline.ast.helpers :refer [->abi ->contract-instance ->conversion
                                    ->map-module ->structdef]]))
 
@@ -104,6 +104,13 @@
 ;; ========================================
 ;;  INTERFACES
 ;; ========================================
+;; NOTE I am using a record here because an import statement shouldn't be stored in the AST
+;; So we don't need to make a protobuf for it
+(defrecord ast-import-statement [import-path])
+
+(defmethod ->node :import-statement
+  [[_ [_ import-path]]]
+  (->ast-import-statement import-path))
 
 ;; TODO I should make an address an expression
 (defmethod ->node :contract-instance
@@ -132,7 +139,8 @@
   [[_ name & params]]
   (ast/new-EventAbi {:type "event"
                      :name name
-                     :inputs (into [] (map ->node params))}))
+                     :inputs (into [] (map ->node params))
+                     :anonymous false}))
 
 (defmethod ->node :indexed-event-param
   [[_ type name]]
@@ -176,6 +184,11 @@
 ;; ========================================
 ;; EXPRESSIONS
 ;; ========================================
+
+(defmethod ->node :array-expression
+  [input]
+  (let [[_ & elements] input]
+    (ast/new-Expression {:expression {:literal {:literal {:array {:elements (into [] (map ->node elements))}}}}})))
 
 (defmethod ->node :struct-expression-field
   [input]

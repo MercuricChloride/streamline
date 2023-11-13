@@ -28,6 +28,9 @@
 (declare cis->StructLiteralField)
 (declare ecis->StructLiteralField)
 (declare new-StructLiteralField)
+(declare cis->ArrayLiteral)
+(declare ecis->ArrayLiteral)
+(declare new-ArrayLiteral)
 (declare cis->BinaryOp)
 (declare ecis->BinaryOp)
 (declare new-BinaryOp)
@@ -185,6 +188,7 @@
      (get-in origkeyval [:literal :str]) origkeyval
      (get-in origkeyval [:literal :boolean]) origkeyval
      (get-in origkeyval [:literal :struct]) (update-in origkeyval [:literal :struct] new-StructLiteral)
+     (get-in origkeyval [:literal :array]) (update-in origkeyval [:literal :array] new-ArrayLiteral)
      :default origkeyval))
 
 (defn write-Literal-literal [literal os]
@@ -196,6 +200,7 @@
          :str (serdes.core/write-String 2  {:optimize false} v os)
          :boolean (serdes.core/write-Bool 3  {:optimize false} v os)
          :struct (serdes.core/write-embedded 4 v os)
+         :array (serdes.core/write-embedded 5 v os)
          nil)))
 
 
@@ -359,6 +364,54 @@
   (cis->StructLiteralField (serdes.stream/new-cis input)))
 
 (def ^:protojure.protobuf.any/record StructLiteralField-meta {:type "spyglass.streamline.alpha.ast.StructLiteralField" :decoder pb->StructLiteralField})
+
+;-----------------------------------------------------------------------------
+; ArrayLiteral
+;-----------------------------------------------------------------------------
+(defrecord ArrayLiteral-record [elements]
+  pb/Writer
+  (serialize [this os]
+    (serdes.complex/write-repeated serdes.core/write-embedded 1 (:elements this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.ArrayLiteral"))
+
+(s/def ::ArrayLiteral-spec (s/keys :opt-un []))
+(def ArrayLiteral-defaults {:elements [] })
+
+(defn cis->ArrayLiteral
+  "CodedInputStream to ArrayLiteral"
+  [is]
+  (->> (tag-map ArrayLiteral-defaults
+         (fn [tag index]
+             (case index
+               1 [:elements (serdes.complex/cis->repeated ecis->Expression is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->ArrayLiteral-record)))
+
+(defn ecis->ArrayLiteral
+  "Embedded CodedInputStream to ArrayLiteral"
+  [is]
+  (serdes.core/cis->embedded cis->ArrayLiteral is))
+
+(defn new-ArrayLiteral
+  "Creates a new instance from a map, similar to map->ArrayLiteral except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::ArrayLiteral-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::ArrayLiteral-spec init))))]}
+  (-> (merge ArrayLiteral-defaults init)
+      (cond-> (some? (get init :elements)) (update :elements #(map new-Expression %)))
+      (map->ArrayLiteral-record)))
+
+(defn pb->ArrayLiteral
+  "Protobuf to ArrayLiteral"
+  [input]
+  (cis->ArrayLiteral (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record ArrayLiteral-meta {:type "spyglass.streamline.alpha.ast.ArrayLiteral" :decoder pb->ArrayLiteral})
 
 ;-----------------------------------------------------------------------------
 ; BinaryOp
@@ -845,12 +898,13 @@
 ;-----------------------------------------------------------------------------
 ; EventAbi
 ;-----------------------------------------------------------------------------
-(defrecord EventAbi-record [type name inputs]
+(defrecord EventAbi-record [type name inputs anonymous]
   pb/Writer
   (serialize [this os]
     (serdes.core/write-String 1  {:optimize true} (:type this) os)
     (serdes.core/write-String 2  {:optimize true} (:name this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 3 (:inputs this) os))
+    (serdes.complex/write-repeated serdes.core/write-embedded 3 (:inputs this) os)
+    (serdes.core/write-Bool 4  {:optimize true} (:anonymous this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.EventAbi"))
@@ -858,8 +912,9 @@
 (s/def :spyglass.streamline.alpha.ast.EventAbi/type string?)
 (s/def :spyglass.streamline.alpha.ast.EventAbi/name string?)
 
-(s/def ::EventAbi-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.EventAbi/type :spyglass.streamline.alpha.ast.EventAbi/name ]))
-(def EventAbi-defaults {:type "" :name "" :inputs [] })
+(s/def :spyglass.streamline.alpha.ast.EventAbi/anonymous boolean?)
+(s/def ::EventAbi-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.EventAbi/type :spyglass.streamline.alpha.ast.EventAbi/name :spyglass.streamline.alpha.ast.EventAbi/anonymous ]))
+(def EventAbi-defaults {:type "" :name "" :inputs [] :anonymous false })
 
 (defn cis->EventAbi
   "CodedInputStream to EventAbi"
@@ -870,6 +925,7 @@
                1 [:type (serdes.core/cis->String is)]
                2 [:name (serdes.core/cis->String is)]
                3 [:inputs (serdes.complex/cis->repeated ecis->EventInput is)]
+               4 [:anonymous (serdes.core/cis->Bool is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -1473,6 +1529,7 @@
                2 [:literal {:str (serdes.core/cis->String is)}]
                3 [:literal {:boolean (serdes.core/cis->Bool is)}]
                4 [:literal {:struct (ecis->StructLiteral is)}]
+               5 [:literal {:array (ecis->ArrayLiteral is)}]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)

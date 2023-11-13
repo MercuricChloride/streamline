@@ -1,8 +1,10 @@
 (ns streamline.core
   (:require
+   [protojure.protobuf :as protojure]
+   [streamline.ast.file-constructor :refer [construct-streamline-file]]
    [streamline.ast.parser :refer [parser]]
    [streamline.ast.writer :refer [write-ast]]
-   [streamline.ast.file-constructor :refer [construct-streamline-file]])
+   [spyglass.streamline.alpha.ast :as ast])
   (:gen-class))
 
 (defn -main
@@ -14,11 +16,11 @@
 
 (def parse-tree (parser (slurp "streamline.strm")))
 
-(construct-streamline-file parse-tree)
+(def sushi (parser (slurp "sushi.strm")))
+(construct-streamline-file sushi)
+(write-ast sushi "sushi.cstrm")
 
 
 
-;; (def sushi (parser (slurp "sushi.strm")))
-;;(write-ast sushi "sushi.cstrm")
 ;; (write-ast ast "streamline-test.cstrm")
 ;; (def astproto (ast->file sushi))

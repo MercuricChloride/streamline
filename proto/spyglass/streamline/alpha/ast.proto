@@ -59,6 +59,7 @@ message EventAbi {
     string type = 1; // always "event"
     string name = 2;
     repeated EventInput inputs = 3;
+    bool anonymous = 4;
 }
 
 message EventInput {
@@ -133,7 +134,12 @@ message Literal {
         string str = 2;
         bool boolean = 3;
         StructLiteral struct = 4;
+        ArrayLiteral array = 5;
     }
+}
+
+message ArrayLiteral {
+    repeated Expression elements = 1;
 }
 
 message StructLiteral {

@@ -15,10 +15,41 @@ struct Pools {
      address token1;
 }
 
+struct EntityChange {
+    string entity;
+    string id;
+    string operation;
+    Field[] fields;
+}
+
+struct Field {
+    string name;
+    string value;
+}
+
 map pools_created:
 (Sushi.PoolCreated[]) -> Pools[] {
     map (p) => Pools {
         token0: p.token0,
         token1: p.token1,
+    };
+}
+
+map changes:
+(map_pools_created) -> EntityChange[] {
+    map (p) => EntityChange {
+        entity: "Pools",
+        id: p.token0,
+        operation: "CREATE",
+        fields: [
+                Field {
+                      name: "token_a",
+                      value: p.token0
+                 },
+                Field {
+                      name: "token_b",
+                      value: p.token1
+                 },
+        ]
     };
 }

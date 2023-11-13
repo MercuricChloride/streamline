@@ -1,5 +1,7 @@
 stream streamline_test;
 
+import "sushi.strm";
+
 interface Erc721 {
     event PoolCreated(
         address indexed token0,

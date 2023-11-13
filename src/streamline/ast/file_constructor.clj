@@ -42,6 +42,11 @@
   [node acc]
     (assoc acc :instances (conj (:instances acc) node)))
 
+(defmethod store-node streamline.ast.new_parser.ast-import-statement
+  [node acc]
+  acc)
+    ;(assoc acc :imports (conj (:imports acc) node)))
+
 (defn- format-module-signatures
   "Replaces [] with Array for module signatures"
   [module-defs]
@@ -52,7 +57,7 @@
                output (string/replace output "[]" "Array")]
            (assoc module-def :signature {:inputs inputs :output output}))) module-defs))
 
-(defn- construct-base-ast
+(defn construct-base-ast
   [parse-tree]
   (->> (loop [parse-tree parse-tree
               acc {}]
@@ -89,4 +94,4 @@
         {:keys [:contracts :types :instances]} base-ast
         symbol-table (construct-symbol-table contracts types instances)
         with-protobufs (construct-protobuf-files base-ast symbol-table)]
-    with-protobufs))
+    (ast/new-StreamlineFile with-protobufs)))
