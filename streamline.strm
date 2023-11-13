@@ -12,6 +12,8 @@ interface Erc721 {
     function foo(address a) external;
 }
 
+Erc721 bayc = Erc721(0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D);
+
 convert:
 Erc721.Transfer -> SomethingElse {
     (transfer) => SomethingElse {
@@ -32,7 +34,7 @@ struct AnotherThing {
 }
 
 map something_else:
-(Erc721.Transfer[] Foo Bar) -> SomethingElse[] {
+(Erc721.Transfer[], Foo, Bar) -> SomethingElse[] {
     map (transfer) => SomethingElse {
         from: transfer.from,
         to: transfer.to,

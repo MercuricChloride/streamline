@@ -77,7 +77,7 @@
   [types]
   (into {} (flatten types)))
 
-(defn symbol-table
+(defn construct-symbol-table
   "This function creates a symbol table for the ast.
   Going from a identifier -> it's type"
   [interfaces struct-defs contract-instances]

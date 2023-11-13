@@ -18,9 +18,8 @@
 
 (defn index+field->protobuf
   "Converts a vector of [index :struct-field] into a protobuf field"
-  [input]
-  (let [[index field] input
-        index (inc index)] ; protobufs are 1 indexed bleh
+  [index field]
+  (let [index (inc index)] ; protobufs are 1 indexed bleh
     (str field " = " index ";")))
 
 (defn input->protobuf
@@ -40,8 +39,7 @@
                   csk/->PascalCase)
         inputs (:inputs input)
         inputs (map input->protobuf inputs)
-        index+inputs (map-indexed vector inputs)
-        fields (string/join "\n" (map index+field->protobuf index+inputs))]
+        fields (string/join "\n" (map-indexed index+field->protobuf inputs))]
     (str "message " name "{\n" fields "\n}")))
 
 (defn events->protobuf
@@ -70,13 +68,11 @@
 (defn- struct->protobuf
   "Converts a StructDef node into a protobuf message"
   [input array-types]
-  (let [name (:name input)
-        fields (:fields input)
+  (let [{:keys [:name :fields]} input
         fields (map input->protobuf fields)
-        index+fields (map-indexed vector fields)
         as-array (when (get array-types name)
                      (array-type->protobuf name))
-        fields (string/join "\n" (map index+field->protobuf index+fields))]
+        fields (string/join "\n" (map-indexed index+field->protobuf fields))]
     (str "message " name "{\n" fields "\n}\n\n" as-array)))
 
 (defn structs->protobuf

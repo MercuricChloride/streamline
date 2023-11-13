@@ -13,7 +13,7 @@
     <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
     <pipeline> = (lambda / hof)*
 
-    contract-instance = identifier identifier <'='> identifier <'('> address <')'> <';'>
+    contract-instance = type identifier <'='> type <'('> address <')'> <';'>
 
     conversion = <'convert:'> type  <'->'> type <'{'> pipeline <'}'>
 
