@@ -40,7 +40,7 @@
 
 (defmethod store-node spyglass.streamline.alpha.ast.ContractInstance-record
   [node acc]
-    (assoc acc :instances (conj (:instances acc) node)))
+  (assoc acc :instances (conj (:instances acc) node)))
 
 (defmethod store-node streamline.ast.new_parser.ast-import-statement
   [node acc]

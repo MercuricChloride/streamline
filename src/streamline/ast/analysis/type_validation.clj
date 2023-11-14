@@ -35,7 +35,7 @@
 
 (defmulti lookup-type
   "Returns the type of a variable"
-  (fn [type symbol-table] (type-kind type)))
+  (fn [type _] (type-kind type)))
 
 (defmethod lookup-type
   :fully-qualified-array
