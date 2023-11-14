@@ -8,7 +8,9 @@
     file-meta = file-type identifier <';'>
     <file-type> = 'stream' / 'sink'
 
-    import-statement = <'import'> string <';'>
+    import-statement = (normal-import / import-as)
+    <normal-import> = <'import'> string <';'>
+    <import-as> = <'import'> string <'as'> identifier <';'>
 
     lambda = <'('> module-inputs <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
     hof = parent-function <'('> module-inputs <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )

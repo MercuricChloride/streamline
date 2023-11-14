@@ -1,5 +1,7 @@
 stream sushiswapTest;
 
+import "streamline.strm" as s;
+
 interface Sushi {
     event PoolCreated(
         address indexed token0,

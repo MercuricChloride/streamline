@@ -1,7 +1,5 @@
 stream streamline_test;
 
-import "sushi.strm";
-
 interface Erc721 {
     event PoolCreated(
         address indexed token0,
@@ -13,8 +11,6 @@ interface Erc721 {
 
     function foo(address a) external;
 }
-
-Erc721 bayc = Erc721(0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D);
 
 convert:
 Erc721.Transfer -> SomethingElse {

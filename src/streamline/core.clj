@@ -17,8 +17,6 @@
 (def sushi (parser (slurp "sushi.strm")))
 (write-ast sushi "sushi.cstrm")
 
-(defmulti resolve-protobuf-types (fn [node symbol-table namespace] (class node)))
-
 
 (defn symbol-resolver
   "Takes in a list of types and a namespace, and returns the protobuf type for each symbol present in the AST"
@@ -39,31 +37,51 @@
              symbol (str namespace "." type-name)]
          (recur remaining namespace (assoc symbol-table type-name symbol)))))))
 
+(defmulti resolve-protobuf-types (fn [node file-namespace] (class node)))
+
+
 (defmethod resolve-protobuf-types spyglass.streamline.alpha.ast.ContractAbi-record
-  [contract-abi symbol-table namespace]
-  (let [{:keys [:name :events]} contract-abi]
-    (symbol-resolver events namespace name {})))
+  [contract namespace]
+  (let [{:keys [:events :name]} contract]
+    (reduce (fn [acc event]
+              (let [event-name (:name event)]
+                (conj acc {(str name "." event-name) (str namespace "." name "." event-name)})))
+            {}
+            events)))
 
 (defmethod resolve-protobuf-types spyglass.streamline.alpha.ast.StructDef-record
-  [struct-def symbol-table namespace]
+  [struct-def namespace]
   (let [name (:name struct-def)]
-    (symbol-resolver struct-def namespace name {})))
+    {name (str namespace "." name)}))
 
-(defmethod resolve-protobuf-types spyglass.streamline.alpha.ast.StreamlineFile-record
-  [streamline-file _ _]
-  (let [{:keys [:types :contracts :meta]} streamline-file
-        namespace (:name meta)
-        symbol-table {}]
-    (conj (symbol-resolver types namespace nil symbol-table)
-          (->> contracts
-            (map #(resolve-protobuf-types % symbol-table namespace))
-            (map conj)))))
+(defn resolve-ast-protobuf-paths
+  [ast]
+  (let [{:keys [:meta :contracts :types :imports]} ast
+        file-namespace (:name meta)
+        paths (reduce (fn [acc contract]
+                        (conj acc (resolve-protobuf-types contract file-namespace)))
+                      {}
+                      contracts)
+        paths (reduce (fn [acc type]
+                        (conj acc (resolve-protobuf-types type file-namespace)))
+                      paths types)
+        paths (reduce (fn [acc import]
+                        (conj acc (resolve-protobuf-types import file-namespace)))
+                      paths imports)]
+    paths))
 
-(let [base-ast (construct-base-ast sushi)
-      test-contract (first (:contracts base-ast))
-      namespace (:name (:meta base-ast))
-      types (:types base-ast)]
-  (resolve-protobuf-types base-ast nil nil))
+(defmethod resolve-protobuf-types streamline.ast.new_parser.ast-import-statement
+  [import namespace]
+  (let [{:keys [:import-path :rename]} import
+        ast (parser (slurp import-path))
+        base-ast (construct-base-ast ast)
+        resolved-symbols (resolve-ast-protobuf-paths base-ast)]
+    (if rename
+      (->> (map (fn [[k v]]
+             [(str rename "." k) v])
+           resolved-symbols)
+           (into {}))
+      resolved-symbols)))
 
-;; (write-ast ast "streamline-test.cstrm")
-;; (def astproto (ast->file sushi))
+(let [base-ast (construct-base-ast sushi)]
+  (resolve-ast-protobuf-paths base-ast))

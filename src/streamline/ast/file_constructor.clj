@@ -44,8 +44,7 @@
 
 (defmethod store-node streamline.ast.new_parser.ast-import-statement
   [node acc]
-  acc)
-    ;(assoc acc :imports (conj (:imports acc) node)))
+  (assoc acc :imports (conj (:imports acc) node)))
 
 (defn- format-module-signatures
   "Replaces [] with Array for module signatures"

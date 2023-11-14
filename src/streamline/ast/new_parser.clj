@@ -106,11 +106,11 @@
 ;; ========================================
 ;; NOTE I am using a record here because an import statement shouldn't be stored in the AST
 ;; So we don't need to make a protobuf for it
-(defrecord ast-import-statement [import-path])
+(defrecord ast-import-statement [import-path rename])
 
 (defmethod ->node :import-statement
-  [[_ [_ import-path]]]
-  (->ast-import-statement import-path))
+  [[_ [_ import-path] rename]]
+  (->ast-import-statement import-path rename))
 
 ;; TODO I should make an address an expression
 (defmethod ->node :contract-instance
