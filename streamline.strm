@@ -48,7 +48,7 @@ SomethingElse[] -> AnotherThing {
 }
 
 map into_another_thing:
-(map_something_else) -> AnotherThing {
+(something_else) -> AnotherThing {
    (things) => AnotherThing {
        things: things
    };

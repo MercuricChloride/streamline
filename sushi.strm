@@ -57,7 +57,7 @@ Pool[] -> EntityChange[] {
 }
 
 map changes:
-(map_pools_created) -> EntityChange[] {
+(pools_created) -> EntityChange[] {
     map (p) => EntityChange {
         entity: "Pools",
         id: p.token0,
