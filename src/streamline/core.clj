@@ -53,14 +53,14 @@
 (defmethod resolve-protobuf-types spyglass.streamline.alpha.ast.StructDef-record
   [struct-def namespace]
   (let [{:keys [:name :fields]} struct-def]
-     {name (str namespace "." name)}))
+    {name (str namespace "." name)}))
 
 (defmethod resolve-protobuf-types spyglass.streamline.alpha.ast.ModuleDef-record
   [module-def namespace]
   (let [{:keys [:identifier :signature]} module-def
         {:keys [:inputs :output]} signature
         output (string/replace output "[]" "Array")]
-     {identifier output}))
+    {identifier output}))
 
 (defn resolve-ast-module-protobuf-paths
   [modules protobuf-paths]
@@ -79,22 +79,22 @@
 
 (defn resolve-ast-protobuf-paths
   [ast]
-   (let [{:keys [:meta :contracts :types :imports :modules]} ast
-         file-namespace (:name meta)
-         paths (reduce (fn [acc contract]
-                         (conj acc (resolve-protobuf-types contract file-namespace)))
-                       {}
-                       contracts)
-         paths (reduce (fn [acc type]
-                         (conj acc (resolve-protobuf-types type file-namespace)))
-                       paths types)
-         paths (reduce (fn [acc import]
-                         (conj acc (resolve-protobuf-types import file-namespace)))
-                       paths imports)
-         paths (reduce (fn [acc module]
-                         (conj acc (resolve-protobuf-types module file-namespace)))
-                       paths modules)]
-     paths))
+  (let [{:keys [:meta :contracts :types :imports :modules]} ast
+        file-namespace (:name meta)
+        paths (reduce (fn [acc contract]
+                        (conj acc (resolve-protobuf-types contract file-namespace)))
+                      {}
+                      contracts)
+        paths (reduce (fn [acc type]
+                        (conj acc (resolve-protobuf-types type file-namespace)))
+                      paths types)
+        paths (reduce (fn [acc import]
+                        (conj acc (resolve-protobuf-types import file-namespace)))
+                      paths imports)
+        paths (reduce (fn [acc module]
+                        (conj acc (resolve-protobuf-types module file-namespace)))
+                      paths modules)]
+    paths))
 
 (defmethod resolve-protobuf-types streamline.ast.new_parser.ast-import-statement
   [import namespace]
@@ -110,7 +110,6 @@
                 resolved-symbols)
            (into {}))
       resolved-symbols)))
-
 
 (let [base-ast (construct-base-ast sushi)
       contract-data-sources (->> base-ast
@@ -140,21 +139,28 @@
       edges (->> base-ast
                  :modules
                  (map (fn [{:keys [:signature :identifier]}]
-                        (let [{:keys [:inputs :output]} signature]
+                        (let [{:keys [:inputs]} signature]
                           (map (fn [input]
-                                 (if-let [event-source (first (filter #(= (:target %) input) contract-data-sources))]
-                                   {:source (:source event-source) :target identifier}
-                                   {:source input :target identifier})) inputs))))
+                                 (let [event-source (->> contract-data-sources
+                                                         (filter #(= input (:target %)))
+                                                         first
+                                                         :source)]
+                                   {:source (or event-source input) :target identifier}))
+                               inputs))))
                  flatten)
       module-io (->> edges
                      (map (fn [{:keys [:source :target]}]
-                            {:module target :input (get nodes source)}))
-                     (reduce (fn [acc {:keys [module input]}]
+                            {:module target :input source}))
+                     (reduce (fn [acc {:keys [:module :input]}]
                                (if (get acc module)
-                                 (assoc acc module (conj (get acc module) input))
-                                 (assoc acc module [input])))
-                             {}))]
+                                 (assoc acc module {:module module
+                                                    :inputs (conj (:inputs (get acc module)) input)
+                                                    :output (get nodes module)})
+                                 (assoc acc module {:module module
+                                                    :inputs [input]
+                                                    :output (get nodes module)})))
+                             {})
+                     )]
   module-io)
-
 ;; (let [base-ast (construct-base-ast sushi)]
 ;;   (resolve-ast-protobuf-paths base-ast))

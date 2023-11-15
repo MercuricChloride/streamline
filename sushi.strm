@@ -27,7 +27,6 @@ mfn pools_created:
     };
 }
 
-
 struct AnotherOne {
     address djKhalid;
 }
