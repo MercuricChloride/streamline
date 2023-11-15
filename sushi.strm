@@ -27,11 +27,15 @@ mfn pools_created:
     };
 }
 
+
+struct AnotherOne {
+    address djKhalid;
+}
+
 mfn something_else:
-(Sushi.PoolCreated[]) -> Pools[] {
-    map (p) => Pools {
-        token0: p.token0,
-        token1: p.token1,
+(Sushi.PoolCreated[]) -> AnotherOne[] {
+    map (p) => AnotherOne {
+        djKhalid: p.token0,
     };
 }
 
@@ -67,8 +71,8 @@ Pool[] -> EntityChange[] {
 }
 
 mfn changes:
-(pools_created) -> EntityChange[] {
-    map (p) => EntityChange {
+(pools_created, something_else) -> EntityChange[] {
+    map (p, s) => EntityChange {
         entity: "Pools",
         id: p.token0,
         operation: "CREATE",

@@ -122,11 +122,21 @@
                                                    :target (str name "." (:name event))}
                                                   {:source map_fn_name
                                                    :target (str name "." (str (:name event) "[]"))}]) events))))
-
                                  flatten)
+
+      contract-nodes (->> base-ast
+                          :contracts
+                          (map (fn [{:keys [:name]}]
+                                 [(str "map_" (csk/->snake_case name) "_events") (str name ".Events")]))
+                          (into {}))
+
       nodes (->> base-ast
                  :modules
-                 (map :identifier))
+                 (map (fn [{:keys [:signature :identifier]}]
+                        [identifier (:output signature)]))
+                 (into {})
+                 (merge contract-nodes))
+
       edges (->> base-ast
                  :modules
                  (map (fn [{:keys [:signature :identifier]}]
@@ -134,11 +144,17 @@
                           (map (fn [input]
                                  (if-let [event-source (first (filter #(= (:target %) input) contract-data-sources))]
                                    {:source (:source event-source) :target identifier}
-                                   {:source input :target identifier}
-                                   )
-                                 ) inputs))))
-                 flatten)]
-  [nodes edges])
+                                   {:source input :target identifier})) inputs))))
+                 flatten)
+      module-io (->> edges
+                     (map (fn [{:keys [:source :target]}]
+                            {:module target :input (get nodes source)}))
+                     (reduce (fn [acc {:keys [module input]}]
+                               (if (get acc module)
+                                 (assoc acc module (conj (get acc module) input))
+                                 (assoc acc module [input])))
+                             {}))]
+  module-io)
 
 ;; (let [base-ast (construct-base-ast sushi)]
 ;;   (resolve-ast-protobuf-paths base-ast))
