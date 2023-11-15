@@ -38,11 +38,14 @@
     field-access = expression (<'.'> identifier)+
 
     module = module-type identifier <':'> module-signature <'{'> pipeline  <'}'>
-    <module-type> = 'map' | 'store'
+    <module-type> = 'mfn' | 'sfn'
     module-signature = map-module-signature / store-module-signature
     <map-module-signature> = <'('> module-inputs <')'> <'->'> module-output
     <store-module-signature> = <'('> (identifier array?)* <')'> <'->'> store-update-policy
     <store-update-policy> = ('Set' / 'SetNotExists' / 'Add' / 'Min' / 'Max') <'('> (identifier array?) <')'>
+
+    fn = <'fn'> identifier <':'> fn-signature <'{'> pipeline <'}'>
+    fn-signature = <'('> module-inputs <')'> <'->'> module-output
 
     module-inputs = type*
     module-output = type
@@ -71,8 +74,8 @@
     unnamed-return = type <location?>
     named-return = type <location?> identifier
 
-    <identifier> = #'[a-zA-Z_][a-zA-Z0-9_]*'
-    <array-identifier> = #'[a-zA-Z_][a-zA-Z0-9_]*' '[]'
+    <identifier> = #'[a-zA-Z$_][a-zA-Z0-9$_]*'
+    <array-identifier> = #'[a-zA-Z$_][a-zA-Z0-9$_]*' '[]'
     <fully-qualified-identifier> = identifier (<'.'> (array-identifier / identifier))+
     type = (fully-qualified-identifier / array-identifier / identifier)
     number = #'[0-9]+'

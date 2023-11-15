@@ -4,7 +4,8 @@
    [streamline.ast.file-constructor :refer [construct-base-ast
                                             construct-streamline-file]]
    [streamline.ast.parser :refer [parser]]
-   [streamline.ast.writer :refer [write-ast]])
+   [streamline.ast.writer :refer [write-ast]]
+   [camel-snake-kebab.core :as csk])
   (:gen-class))
 
 (defn -main
@@ -15,10 +16,6 @@
     (write-ast ast path)))
 
 (def parse-tree (parser (slurp "streamline.strm")))
-
-(def geo (parser (slurp "geo.strm")))
-;(construct-streamline-file geo)
-;(write-ast geo "geo.cstrm")
 
 (def sushi (parser (slurp "sushi.strm")))
 ;(write-ast sushi "sushi.cstrm")
@@ -112,7 +109,36 @@
                     [(str rename "." k) (str rename "." v)]))
                 resolved-symbols)
            (into {}))
-       resolved-symbols)))
+      resolved-symbols)))
 
-(let [base-ast (construct-base-ast sushi)]
-  (resolve-ast-protobuf-paths base-ast))
+
+(let [base-ast (construct-base-ast sushi)
+      contract-data-sources (->> base-ast
+                                 :contracts
+                                 (map (fn [{:keys [:events :name]}]
+                                        (let [map_fn_name (str "map_" (csk/->snake_case name) "_events")]
+                                          (map (fn [event]
+                                                 [{:source map_fn_name
+                                                   :target (str name "." (:name event))}
+                                                  {:source map_fn_name
+                                                   :target (str name "." (str (:name event) "[]"))}]) events))))
+
+                                 flatten)
+      nodes (->> base-ast
+                 :modules
+                 (map :identifier))
+      edges (->> base-ast
+                 :modules
+                 (map (fn [{:keys [:signature :identifier]}]
+                        (let [{:keys [:inputs :output]} signature]
+                          (map (fn [input]
+                                 (if-let [event-source (first (filter #(= (:target %) input) contract-data-sources))]
+                                   {:source (:source event-source) :target identifier}
+                                   {:source input :target identifier}
+                                   )
+                                 ) inputs))))
+                 flatten)]
+  [nodes edges])
+
+;; (let [base-ast (construct-base-ast sushi)]
+;;   (resolve-ast-protobuf-paths base-ast))
