@@ -93,4 +93,5 @@
         {:keys [:contracts :types :instances]} base-ast
         symbol-table (construct-symbol-table contracts types instances)
         with-protobufs (construct-protobuf-files base-ast symbol-table)]
+    (println symbol-table)
     (ast/new-StreamlineFile with-protobufs)))

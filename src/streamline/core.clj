@@ -1,7 +1,8 @@
 (ns streamline.core
   (:require
    [clojure.string :as string]
-   [streamline.ast.file-constructor :refer [construct-base-ast]]
+   [streamline.ast.file-constructor :refer [construct-base-ast
+                                            construct-streamline-file]]
    [streamline.ast.parser :refer [parser]]
    [streamline.ast.writer :refer [write-ast]])
   (:gen-class))
@@ -15,8 +16,12 @@
 
 (def parse-tree (parser (slurp "streamline.strm")))
 
+(def geo (parser (slurp "geo.strm")))
+;(construct-streamline-file geo)
+;(write-ast geo "geo.cstrm")
+
 (def sushi (parser (slurp "sushi.strm")))
-(write-ast sushi "sushi.cstrm")
+;(write-ast sushi "sushi.cstrm")
 
 (defn symbol-resolver
   "Takes in a list of types and a namespace, and returns the protobuf type for each symbol present in the AST"
@@ -50,8 +55,8 @@
 
 (defmethod resolve-protobuf-types spyglass.streamline.alpha.ast.StructDef-record
   [struct-def namespace]
-  (let [name (:name struct-def)]
-    {name (str namespace "." name)}))
+  (let [{:keys [:name :fields]} struct-def]
+     {name (str namespace "." name)}))
 
 (defmethod resolve-protobuf-types spyglass.streamline.alpha.ast.ModuleDef-record
   [module-def namespace]
@@ -76,9 +81,7 @@
     module-map))
 
 (defn resolve-ast-protobuf-paths
-  ([ast]
-   (resolve-ast-protobuf-paths ast nil))
-  ([ast rename]
+  [ast]
    (let [{:keys [:meta :contracts :types :imports :modules]} ast
          file-namespace (:name meta)
          paths (reduce (fn [acc contract]
@@ -94,14 +97,14 @@
          paths (reduce (fn [acc module]
                          (conj acc (resolve-protobuf-types module file-namespace)))
                        paths modules)]
-     paths)))
+     paths))
 
 (defmethod resolve-protobuf-types streamline.ast.new_parser.ast-import-statement
   [import namespace]
   (let [{:keys [:import-path :rename]} import
         ast (parser (slurp import-path))
         base-ast (construct-base-ast ast)
-        resolved-symbols (resolve-ast-protobuf-paths base-ast rename)]
+        resolved-symbols (resolve-ast-protobuf-paths base-ast)]
     (if rename
       (->> (map (fn [[k v]]
                   (if (string/starts-with? v (:name (:meta base-ast)))

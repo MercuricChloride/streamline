@@ -49,6 +49,9 @@
 (declare cis->FunctionAbi)
 (declare ecis->FunctionAbi)
 (declare new-FunctionAbi)
+(declare cis->ModuleInput)
+(declare ecis->ModuleInput)
+(declare new-ModuleInput)
 (declare cis->ContractInstance)
 (declare ecis->ContractInstance)
 (declare new-ContractInstance)
@@ -575,19 +578,21 @@
 ;-----------------------------------------------------------------------------
 ; StructDef
 ;-----------------------------------------------------------------------------
-(defrecord StructDef-record [name fields]
+(defrecord StructDef-record [name fields protobuf-message]
   pb/Writer
   (serialize [this os]
     (serdes.core/write-String 1  {:optimize true} (:name this) os)
-    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:fields this) os))
+    (serdes.complex/write-repeated serdes.core/write-embedded 2 (:fields this) os)
+    (serdes.core/write-String 3  {:optimize true} (:protobuf-message this) os))
   pb/TypeReflection
   (gettype [this]
     "spyglass.streamline.alpha.ast.StructDef"))
 
 (s/def :spyglass.streamline.alpha.ast.StructDef/name string?)
 
-(s/def ::StructDef-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StructDef/name ]))
-(def StructDef-defaults {:name "" :fields [] })
+(s/def :spyglass.streamline.alpha.ast.StructDef/protobuf-message string?)
+(s/def ::StructDef-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.StructDef/name :spyglass.streamline.alpha.ast.StructDef/protobuf-message ]))
+(def StructDef-defaults {:name "" :fields [] :protobuf-message "" })
 
 (defn cis->StructDef
   "CodedInputStream to StructDef"
@@ -597,6 +602,7 @@
              (case index
                1 [:name (serdes.core/cis->String is)]
                2 [:fields (serdes.complex/cis->repeated ecis->StructField is)]
+               3 [:protobuf-message (serdes.core/cis->String is)]
 
                [index (serdes.core/cis->undefined tag is)]))
          is)
@@ -736,6 +742,57 @@
   (cis->FunctionAbi (serdes.stream/new-cis input)))
 
 (def ^:protojure.protobuf.any/record FunctionAbi-meta {:type "spyglass.streamline.alpha.ast.FunctionAbi" :decoder pb->FunctionAbi})
+
+;-----------------------------------------------------------------------------
+; ModuleInput
+;-----------------------------------------------------------------------------
+(defrecord ModuleInput-record [name type]
+  pb/Writer
+  (serialize [this os]
+    (serdes.core/write-String 1  {:optimize true} (:name this) os)
+    (serdes.core/write-String 2  {:optimize true} (:type this) os))
+  pb/TypeReflection
+  (gettype [this]
+    "spyglass.streamline.alpha.ast.ModuleInput"))
+
+(s/def :spyglass.streamline.alpha.ast.ModuleInput/name string?)
+(s/def :spyglass.streamline.alpha.ast.ModuleInput/type string?)
+(s/def ::ModuleInput-spec (s/keys :opt-un [:spyglass.streamline.alpha.ast.ModuleInput/name :spyglass.streamline.alpha.ast.ModuleInput/type ]))
+(def ModuleInput-defaults {:name "" :type "" })
+
+(defn cis->ModuleInput
+  "CodedInputStream to ModuleInput"
+  [is]
+  (->> (tag-map ModuleInput-defaults
+         (fn [tag index]
+             (case index
+               1 [:name (serdes.core/cis->String is)]
+               2 [:type (serdes.core/cis->String is)]
+
+               [index (serdes.core/cis->undefined tag is)]))
+         is)
+        (map->ModuleInput-record)))
+
+(defn ecis->ModuleInput
+  "Embedded CodedInputStream to ModuleInput"
+  [is]
+  (serdes.core/cis->embedded cis->ModuleInput is))
+
+(defn new-ModuleInput
+  "Creates a new instance from a map, similar to map->ModuleInput except that
+  it properly accounts for nested messages, when applicable.
+  "
+  [init]
+  {:pre [(if (s/valid? ::ModuleInput-spec init) true (throw (ex-info "Invalid input" (s/explain-data ::ModuleInput-spec init))))]}
+  (-> (merge ModuleInput-defaults init)
+      (map->ModuleInput-record)))
+
+(defn pb->ModuleInput
+  "Protobuf to ModuleInput"
+  [input]
+  (cis->ModuleInput (serdes.stream/new-cis input)))
+
+(def ^:protojure.protobuf.any/record ModuleInput-meta {:type "spyglass.streamline.alpha.ast.ModuleInput" :decoder pb->ModuleInput})
 
 ;-----------------------------------------------------------------------------
 ; ContractInstance

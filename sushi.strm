@@ -1,6 +1,6 @@
 stream sushiswapTest;
 
-import "streamline.strm" as s;
+import "streamline.strm";
 
 interface Sushi {
     event PoolCreated(
@@ -17,7 +17,7 @@ struct Pools {
      address token1;
 }
 
-map pools_created:
+mfn pools_created:
 (Sushi.PoolCreated[]) -> Pools[] {
     map (p) => Pools {
         token0: p.token0,

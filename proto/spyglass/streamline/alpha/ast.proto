@@ -48,6 +48,7 @@ message ContractAbi {
 message StructDef {
     string name = 1;
     repeated StructField fields = 2;
+    string protobuf_message = 3;
 }
 
 message StructField {
@@ -98,6 +99,11 @@ message ModuleDef {
 message ModuleSignature {
     repeated string inputs = 1;
     string output = 2;
+}
+
+message ModuleInput {
+    string name = 1;
+    string type = 2;
 }
 
 message Function {
