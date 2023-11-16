@@ -27,7 +27,7 @@
 (defmethod ->node :type
   [[_ & parts]]
   (if (= (last parts) "[]")
-    (str (string/join "." (butlast parts)) "[]")
+    (str (string/join "." (butlast parts)) "Array")
     (str (string/join "." parts))))
 
 ;; ========================================

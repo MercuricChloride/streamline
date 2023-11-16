@@ -120,19 +120,21 @@
                                                  [{:source map_fn_name
                                                    :target (str name "." (:name event))}
                                                   {:source map_fn_name
-                                                   :target (str name "." (str (:name event) "[]"))}]) events))))
+                                                   :target (str name "." (str (:name event) "Array"))}]) events))))
                                  flatten)
 
       contract-nodes (->> base-ast
                           :contracts
                           (map (fn [{:keys [:name]}]
-                                 [(str "map_" (csk/->snake_case name) "_events") (str name ".Events")]))
+                                 [(str "map_" (csk/->snake_case name) "_events") {:output (str name ".Events")
+                                                                                  :kind "map"}]))
                           (into {}))
 
       nodes (->> base-ast
                  :modules
-                 (map (fn [{:keys [:signature :identifier]}]
-                        [identifier (:output signature)]))
+                 (map (fn [{:keys [:signature :identifier :kind]}]
+                        [identifier {:output (:output signature)
+                                     :kind kind}]))
                  (into {})
                  (merge contract-nodes))
 
@@ -148,19 +150,17 @@
                                    {:source (or event-source input) :target identifier}))
                                inputs))))
                  flatten)
-      module-io (->> edges
-                     (map (fn [{:keys [:source :target]}]
-                            {:module target :input source}))
-                     (reduce (fn [acc {:keys [:module :input]}]
-                               (if (get acc module)
-                                 (assoc acc module {:module module
-                                                    :inputs (conj (:inputs (get acc module)) input)
-                                                    :output (get nodes module)})
-                                 (assoc acc module {:module module
-                                                    :inputs [input]
-                                                    :output (get nodes module)})))
-                             {})
-                     )]
+      module-io (->> nodes
+                     (map (fn [[module_name {:keys [:output]}]]
+                            (let [inputs (->> edges
+                                              (filter #(= (:target %) module_name))
+                                              (map :source))
+                                  inputs (if (empty? inputs)
+                                           ["Block"]
+                                           inputs)]
+                              {:module module_name
+                               :inputs inputs
+                               :output output}))))]
   module-io)
 ;; (let [base-ast (construct-base-ast sushi)]
 ;;   (resolve-ast-protobuf-paths base-ast))
