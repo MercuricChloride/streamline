@@ -1,6 +1,6 @@
 (ns streamline.core
   (:require
-   [clojure.string :as string]
+   [streamline.ast.dag :refer [construct-dag]]
    [streamline.ast.file-constructor :refer [construct-base-ast]]
    [streamline.ast.parser :refer [parser]]
    [streamline.ast.writer :refer [write-ast]])
@@ -136,7 +136,8 @@
                                              array-symbol (str event-symbol "[]")
                                              event-message (str namespace "." event-symbol)
                                              array-message (str namespace "." event-symbol "Array")]
-                                         [{event-symbol event-message} {array-symbol array-message}]))))) contracts))))
+                                         [{event-symbol event-message} {array-symbol array-message}])))
+                                (concat [{(str name ".Events") (str namespace "." name ".Events")}]))) contracts))))
 
 (defn structs->symbols
   "Converts a list of structs into a map from their event symbols to their protobuf message type"
@@ -153,9 +154,18 @@
 
       namespace (:name (:meta base-ast))
 
-      protobuf-symbol-table (merge (contracts->symbols contracts namespace) (structs->symbols structs namespace))
+      protobuf-symbol-table (merge
+                             {"Block" "sf.ethereum.type.v2.Block"}
+                             (contracts->symbols contracts namespace)
+                             (structs->symbols structs namespace))
 
       protobuf-paths (concat
                       [namespace]
-                      (map #(str namespace "." (:name %)) contracts))]
-  protobuf-symbol-table)
+                      (map #(str namespace "." (:name %)) contracts))
+      resolved-dag (map (fn [node]
+                          (let [inputs (:inputs node)
+                                output (:output node)
+                                inputs (map #(or (get protobuf-symbol-table %) %) inputs)
+                                output (or (get protobuf-symbol-table output) output)]
+                            {:inputs inputs :output output})) (construct-dag base-ast))]
+  resolved-dag)
