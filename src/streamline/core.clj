@@ -1,7 +1,6 @@
 (ns streamline.core
   (:require
-   [camel-snake-kebab.core :as csk]
-   [streamline.ast.dag :refer [construct-dag]]
+   [clojure.string :as string]
    [streamline.ast.file-constructor :refer [construct-base-ast]]
    [streamline.ast.parser :refer [parser]]
    [streamline.ast.writer :refer [write-ast]])
@@ -110,9 +109,54 @@
 ;;            (into {}))
 ;;       resolved-symbols)))
 
-(let [base-ast (construct-base-ast sushi)
-      dag (construct-dag base-ast)]
-    )
+;; (defn contract->protobuf
+;;   "Converts a Contract AST node into a protobuf file"
+;;   [input array-types file-namespace]
+;;   (let [name (:name input)
+;;         array-types (->> array-types
+;;                          (filter #(string/starts-with? % name))
+;;                          (map array-type->protobuf)
+;;                          (string/join "\n\n"))
+;;         events (events->protobuf (:events input))
+;;         protobufs (str events "\n\n" array-types)
+;;         functions (:functions input)
+;;         template (slurp "./templates/protobuf.txt")]
+;;     (-> template
+;;         (string/replace "$$PACKAGE-NAME$$" (str file-namespace "." name))
+;;         (string/replace "$$TYPES$$" protobufs))))
 
-;; (let [base-ast (construct-base-ast sushi)]
-;;   (resolve-ast-protobuf-paths base-ast))
+(defn contracts->symbols
+  "Converts a list of contracts into a map from their event symbols to their protobuf message type"
+  [contracts namespace]
+  (into {} (flatten (map (fn [{:keys [:name :events]}]
+                  (->> events
+                       (map (fn [event]
+                              (let [event-name (:name event)
+                                    event-symbol (str name "." event-name)
+                                    array-symbol (str event-symbol "[]")
+                                    event-message (str namespace "." event-symbol)
+                                    array-message (str namespace "." event-symbol "Array")]
+                                [{event-symbol event-message} {array-symbol array-message}]))))) contracts))))
+
+(defn structs->symbols
+  "Converts a list of structs into a map from their event symbols to their protobuf message type"
+  [structs namespace]
+  (into {} (flatten (map (fn [{:keys [:name]}]
+                  (let [struct-path (str namespace "." name)
+                        array-name (str name "[]")
+                        array-path (str struct-path "Array")]
+                    [{name struct-path} {array-name array-path}])) structs))))
+
+(let [base-ast (construct-base-ast sushi)
+      contracts (:contracts base-ast)
+      structs (:types base-ast)
+
+      namespace (:name (:meta base-ast))
+
+      contract-symbols (contracts->symbols contracts namespace)
+      struct-symbols (structs->symbols structs namespace)
+
+      protobuf-paths (concat
+                      [namespace]
+                      (map #(str namespace "." (:name %)) contracts))]
+  (merge contract-symbols struct-symbols))
