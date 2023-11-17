@@ -4,7 +4,8 @@
    [streamline.ast.file-constructor :refer [construct-base-ast]]
    [streamline.ast.parser :refer [parser]]
    [streamline.ast.writer :refer [write-ast]]
-   [pogonos.core :as pg])
+   [pogonos.core :as pg]
+   [clojure.string :as string])
   (:gen-class))
 
 (defn -main
@@ -134,7 +135,7 @@
                                 (map (fn [event]
                                        (let [event-name (:name event)
                                              event-symbol (str name "." event-name)
-                                             array-symbol (str event-symbol "[]")
+                                             array-symbol (str event-symbol "Array")
                                              event-message (str namespace "." event-symbol)
                                              array-message (str namespace "." event-symbol "Array")]
                                          [{event-symbol event-message} {array-symbol array-message}])))
@@ -145,9 +146,28 @@
   [structs namespace]
   (into {} (flatten (map (fn [{:keys [:name]}]
                            (let [struct-path (str namespace "." name)
-                                 array-name (str name "[]")
+                                 array-name (str name "Array")
                                  array-path (str struct-path "Array")]
                              [{name struct-path} {array-name array-path}])) structs))))
+(defn render-module
+  [module]
+  (pg/render-resource "templates/rust/functions/map_module.mustache" (into {} module)))
+
+(defn format-module
+  [resolved-dag module]
+  (let [{:keys [:identifier]} module
+        io (get resolved-dag identifier)
+        inputs (->> io
+                    :inputs
+                    (map #(or (:output (get resolved-dag %)) %))
+                    (map #(string/replace % "." "::"))
+                    (map-indexed #(str "input" (inc %1) ": " %2))
+                    (string/join ", "))
+        output (->> io
+                    :output
+                    (#(string/replace % "." "::")))
+        protobuf-signature {:inputs inputs :output output}]
+    (assoc module :signature protobuf-signature)))
 
 (let [base-ast (construct-base-ast sushi)
       contracts (:contracts base-ast)
@@ -163,12 +183,16 @@
       protobuf-paths (concat
                       [namespace]
                       (map #(str namespace "." (:name %)) contracts))
-      resolved-dag (map (fn [node]
+      resolved-dag (into {} (map (fn [node]
                           (let [inputs (:inputs node)
                                 output (:output node)
+                                name (:module node)
                                 inputs (map #(or (get protobuf-symbol-table %) %) inputs)
                                 output (or (get protobuf-symbol-table output) output)]
-                            {:inputs inputs :output output})) (construct-dag base-ast))]
-  resolved-dag)
-
-(pg/render-file "templates/rust/functions/map_module.mustache" {:name "epic_function"})
+                            [name {:inputs inputs :output output}])) (construct-dag base-ast)))]
+  (->> base-ast
+        :modules
+        first
+        (format-module resolved-dag)
+        render-module)
+  )
