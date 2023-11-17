@@ -3,7 +3,8 @@
    [streamline.ast.dag :refer [construct-dag]]
    [streamline.ast.file-constructor :refer [construct-base-ast]]
    [streamline.ast.parser :refer [parser]]
-   [streamline.ast.writer :refer [write-ast]])
+   [streamline.ast.writer :refer [write-ast]]
+   [pogonos.core :as pg])
   (:gen-class))
 
 (defn -main
@@ -169,3 +170,5 @@
                                 output (or (get protobuf-symbol-table output) output)]
                             {:inputs inputs :output output})) (construct-dag base-ast))]
   resolved-dag)
+
+(pg/render-file "templates/rust/functions/map_module.mustache" {:name "epic_function"})
