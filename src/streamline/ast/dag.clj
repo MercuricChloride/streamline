@@ -13,7 +13,7 @@
                        [{:source map_fn_name
                          :target (str name "." (:name event))}
                         {:source map_fn_name
-                         :target (str name "." (str (:name event) "[]"))}]) events))))
+                         :target (str name "." (str (:name event) "_Array"))}]) events))))
        flatten))
 
 (defn- contract-nodes

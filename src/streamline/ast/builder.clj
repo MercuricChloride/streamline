@@ -1,14 +1,8 @@
-(ns streamline.ast.new-parser
+(ns streamline.ast.builder
   (:require
-   [clojure.data.json :as json]
-   [clojure.java.io :as io]
+   [camel-snake-kebab.core :as csk]
    [clojure.string :as string]
-   [protojure.protobuf :as protojure]
-   [spyglass.streamline.alpha.ast :as ast]
-   [streamline.ast.analysis.type-validation :refer [get-array-types
-                                                    construct-symbol-table]]
-   [streamline.ast.helpers :refer [->abi ->contract-instance ->conversion
-                                   ->map-module ->structdef]]))
+   [spyglass.streamline.alpha.ast :as ast]))
 
 (defmacro require!
   "Tests a predicate, and if false throws an exception"
@@ -27,7 +21,7 @@
 (defmethod ->node :type
   [[_ & parts]]
   (if (= (last parts) "[]")
-    (str (string/join "." (butlast parts)) "Array")
+    (str (string/join "." (butlast parts)) "_Array")
     (str (string/join "." parts))))
 
 ;; ========================================
@@ -38,8 +32,8 @@
   [[_ kind name]]
   (let [kind (get file-kinds kind)]
     (require! kind "Invalid streamline kind")
-    (ast/new-FileMeta {:name name
-                       :kind kind})))
+    {:name name
+     :kind kind}))
 
 ;; ========================================
 ;;  STRUCTS
@@ -48,12 +42,12 @@
 (defmethod ->node :struct-def
   [[_ name & fields]]
   (let [fields (into [] (map ->node fields))]
-    (ast/new-StructDef {:name name
+    (ast/new-StructDef {:name (csk/->Camel_Snake_Case name)
                         :fields fields})))
 
 (defmethod ->node :struct-field
   [[_ type name]]
-  (ast/new-StructField {:name name
+  (ast/new-StructField {:name (csk/->snake_case name)
                         :type (->node type)}))
 
 ;; ========================================
@@ -72,7 +66,7 @@
 
 (defmethod ->node :module
   [[_ kind name signature & pipeline]]
-  (ast/new-ModuleDef {:identifier name
+  (ast/new-ModuleDef {:identifier (csk/->snake_case name)
                       :kind kind
                       :signature (->node signature)
                       :pipeline (into [] (map ->node pipeline))}))
@@ -131,7 +125,7 @@
                                     (= (first %) :function-wo-return)))
                        (map ->node)
                        (into []))]
-    (ast/new-ContractAbi {:name name
+    (ast/new-ContractAbi {:name (csk/->snake_case name)
                           :events events
                           :functions functions})))
 

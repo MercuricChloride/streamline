@@ -5,6 +5,7 @@
    [streamline.ast.parser :refer [parser]]
    [streamline.ast.writer :refer [write-ast]]
    [pogonos.core :as pg]
+   [pogonos.partials :as partials]
    [clojure.string :as string])
   (:gen-class))
 
@@ -161,7 +162,7 @@
                     :inputs
                     (map #(or (:output (get resolved-dag %)) %))
                     (map #(string/replace % "." "::"))
-                    (map-indexed #(str "input" (inc %1) ": " %2))
+                    (map-indexed (fn [index val] (str "input" (inc index) ": " val)))
                     (string/join ", "))
         output (->> io
                     :output
@@ -184,15 +185,14 @@
                       [namespace]
                       (map #(str namespace "." (:name %)) contracts))
       resolved-dag (into {} (map (fn [node]
-                          (let [inputs (:inputs node)
-                                output (:output node)
-                                name (:module node)
-                                inputs (map #(or (get protobuf-symbol-table %) %) inputs)
-                                output (or (get protobuf-symbol-table output) output)]
-                            [name {:inputs inputs :output output}])) (construct-dag base-ast)))]
+                                   (let [inputs (:inputs node)
+                                         output (:output node)
+                                         name (:module node)
+                                         inputs (map #(or (get protobuf-symbol-table %) %) inputs)
+                                         output (or (get protobuf-symbol-table output) output)]
+                                     [name {:inputs inputs :output output}])) (construct-dag base-ast)))]
   (->> base-ast
-        :modules
-        first
-        (format-module resolved-dag)
-        render-module)
-  )
+       :modules
+       (map #(format-module resolved-dag %))
+       (map render-module)
+       (string/join "\n\n")))

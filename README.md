@@ -1,6 +1,6 @@
-# streamline
+# Streamline
 
-FIXME: description
+A language for Substreams
 
 ## Installation
 
