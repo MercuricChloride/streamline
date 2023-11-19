@@ -5,9 +5,15 @@
    [streamline.ast.metadata :refer [get-namespace protobuf-node?]]))
 
 (defn build-proto-message
-  [name fields]
-  (pg/render-resource "templates/proto/messages.mustache" {:name name
-                                                           :fields fields}))
+  ([name fields]
+   (pg/render-resource "templates/proto/messages.mustache" {:name name
+                                                            :fields fields}))
+  ([name fields _]
+   (string/join "\n"
+                [(pg/render-resource "templates/proto/messages.mustache" {:name name
+                                                                          :fields fields})
+                 (pg/render-resource "templates/proto/messages.mustache" {:name (str name "Array")
+                                                                          :fields (str "repeated " name " elements = 1;")})])))
 (defn build-proto-fields
   "Builds the fields for a protobuf message, requires the fields to be a vector of nodes
    that have a name and type string in their metadata"
@@ -23,7 +29,7 @@
   [node]
   (if (protobuf-node? node)
     (let [{:keys [:name :fields]} (meta node)]
-      (build-proto-message name fields))
+      (build-proto-message name fields :build-array))
     nil))
 
 (defmethod ->message :event-def
@@ -31,7 +37,7 @@
   (let [{:keys [:name]} (meta node)
         [_ _ & fields] node
         fields (build-proto-fields fields)]
-    (build-proto-message name fields)))
+    (build-proto-message name fields :build-array)))
 
 (defmethod ->message :struct-def
   [node]
@@ -39,7 +45,7 @@
     (let [{:keys [:name]} (meta node)
           [_ _ & fields] node
           fields (build-proto-fields fields)]
-      (build-proto-message name fields))
+      (build-proto-message name fields :build-array))
     nil))
 
 (defmethod ->message :interface-def
