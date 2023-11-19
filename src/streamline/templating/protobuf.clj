@@ -22,10 +22,16 @@
 (defmethod ->message :default
   [node]
   (if (protobuf-node? node)
-    (let [{:keys [:name]} (meta node)
-          fields "//todo;"]
+    (let [{:keys [:name :fields]} (meta node)]
       (build-proto-message name fields))
     nil))
+
+(defmethod ->message :event-def
+  [node]
+  (let [{:keys [:name]} (meta node)
+        [_ _ & fields] node
+        fields (build-proto-fields fields)]
+    (build-proto-message name fields)))
 
 (defmethod ->message :struct-def
   [node]

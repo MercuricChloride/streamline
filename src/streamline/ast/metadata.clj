@@ -170,8 +170,7 @@
 
 (defmethod resolve-type :type
   [node symbol-table]
-  (let [m (meta node)
-        type (format-type node)
+  (let [type (format-type node)
         resolved-type (lookup-symbol type symbol-table)]
     (push-metadata node {:type resolved-type})))
 
@@ -200,10 +199,55 @@
                                 :name input-name})) n))]
     (push-metadata node {:inputs inputs})))
 
-(defmethod resolve-type :struct-field
+(defmethod resolve-type :interface-def
   [node symbol-table]
   (let [m (meta node)
-        [kind type name] node
+        [kind name & children] node
+        new-node (->> children
+                      (map #(resolve-type % symbol-table))
+                      (concat [kind name]))]
+    (with-meta new-node m)))
+
+(defmethod resolve-type :event-def
+  [node symbol-table]
+  (let [m (meta node)
+        [kind name & children] node
+        new-node (->> children
+                      (map #(resolve-type % symbol-table))
+                      (concat [kind name]))]
+    (with-meta new-node m)))
+
+(defmethod resolve-type :indexed-event-param
+  [node symbol-table]
+  (let [[kind type name] node
+        resolved-type (resolve-type type symbol-table)
+        proto (-> resolved-type
+                  (meta)
+                  :type)
+        new-meta {:type proto
+                  :name name
+                  :indexed true
+                  :repeated (string/ends-with? type "[]")}
+        new-node (concat [kind resolved-type name])]
+    (push-metadata new-node new-meta)))
+
+(defmethod resolve-type :non-indexed-event-param
+  [node symbol-table]
+  (let [[kind type name] node
+        resolved-type (resolve-type type symbol-table)
+        proto (-> resolved-type
+                  (meta)
+                  :type)
+        new-meta {:type proto
+                  :name name
+                  :indexed false
+                  :repeated (string/ends-with? type "[]")}
+        new-node (concat [kind resolved-type name])]
+    (push-metadata new-node new-meta)))
+
+(defmethod resolve-type :struct-field
+  [node symbol-table]
+  (let [[kind type name] node
         proto (-> type
                   (resolve-type symbol-table)
                   (meta)
@@ -220,8 +264,6 @@
     node
     (let [meta (meta node)]
       (with-meta node meta))))
-
-;(defmethod resolve-symbol :default)
 
 ;;;========================================
 ;;; PUBLIC METADATA HELPERS
