@@ -1,9 +1,8 @@
 (ns streamline.core
   (:require
    [clojure.string :as string]
-   [clojure.tools.reader :refer [resolve-symbol]]
    [pogonos.core :as pg]
-   [streamline.ast.metadata :as meta]
+   [streamline.ast.metadata :as metadata]
    [streamline.ast.parser :refer [parser]]
    [streamline.ast.writer :refer [write-ast]])
   (:gen-class))
@@ -169,24 +168,10 @@
         protobuf-signature {:inputs inputs :output output}]
     (assoc module :signature protobuf-signature)))
 
-(defn traverse-and-return-tree
-  "Traverses a tree in a depth-first manner, applies 'f' to each node's value, and returns a new tree."
-  [f tree]
-  (if (seq tree)
-    (let [new-value (f (first tree)) ; Apply 'f' to the current node's value and store it
-          children (map #(traverse-and-return-tree f %) (rest tree))] ; Recursively apply to children
-      (cons new-value children)) ; Construct the new tree node
-    tree)) ; Return the tree as is if it's empty or a leaf
-
-
 (let [parse-tree (parser (slurp "sushi.strm"))
-      [ast symbol-table] (meta/add-metadata parse-tree)
-      ;(string/split "Sushi.PoolCreated[]" #"\.")
-      ;; protodefs (->> w-namespaces
-      ;;                create-protobuf-defs
-      ;;                (pg/render-resource "templates/proto/protofile.mustache"))
-      ]
-  (map #(meta/resolve-type % symbol-table) ast))
+      [ast symbol-table] (metadata/add-metadata parse-tree)]
+  [ast symbol-table])
+  ;(map #(meta/resolve-type % symbol-table) ast))
 
 ;; (let [base-ast (construct-base-ast sushi)
 ;;       contracts (:contracts base-ast)

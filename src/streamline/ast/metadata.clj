@@ -2,7 +2,7 @@
   (:require
    [camel-snake-kebab.core :as csk]
    [clojure.string :as string]
-   [streamline.ast.helpers :refer [format-type]]))
+   [streamline.ast.helpers :refer [find-child format-type]]))
 
 (defn protobuf-node?
   "Returns if an ast node will be used to generate a protobuf message"
@@ -62,20 +62,6 @@
 ;;; SYMBOL TABLE HELPERS
 ;;; =======================================
 
-(defmulti store-symbol
-  "Stores the symbols for a node in a symbol table"
-  (fn [node _symbol-table] (first node)))
-
-(defmethod store-symbol :default
-  [node st]
-  (if (protobuf-node? node)
-    (let [{:keys [:namespace :name]} (meta node)
-          symbol (str namespace "." name)
-          array-name (str name "[]")
-          array-symbol (str namespace "." name "Array")]
-      (assoc st name symbol array-name array-symbol))
-    st))
-
 (defn solidity-type?
   [type]
   (or (string/starts-with? type "uint")
@@ -84,6 +70,13 @@
       (string/starts-with? type "bool")
       (string/starts-with? type "string")
       (string/starts-with? type "address")))
+
+(defn push-metadata
+  "Pushes metadata to a node"
+  [node metadata-map]
+  (let [m (meta node)
+        new-meta (merge m metadata-map)]
+    (with-meta node new-meta)))
 
 (defn solidity->protobuf-type
   [type]
@@ -102,6 +95,44 @@
           resolved-symbol
           (recur (rest parts) resolved-symbol))))))
 
+(defn get-module-output-type
+  "Returns the output type of a module"
+  ([module]
+   (-> module
+       (find-child :module-signature)
+       (find-child :module-output)
+       last
+       (format-type)))
+  ([module symbol-table]
+   (-> module
+       (find-child :module-signature)
+       (find-child :module-output)
+       last
+       (format-type)
+       (lookup-symbol symbol-table))))
+
+(defmulti store-symbol
+  "Stores the symbols for a node in a symbol table"
+  (fn [node _symbol-table] (first node)))
+
+(defn store-symbols
+  "Stores the symbols for a parse tree in a symbol table"
+  [parse-tree]
+  (reduce (fn [acc node]
+            (store-symbol node acc))
+          {}
+          parse-tree))
+
+(defmethod store-symbol :default
+  [node st]
+  (if (protobuf-node? node)
+    (let [{:keys [:namespace :name]} (meta node)
+          symbol (str namespace "." name)
+          array-name (str name "[]")
+          array-symbol (str namespace "." name "Array")]
+      (assoc st name symbol array-name array-symbol))
+    st))
+
 (defmethod store-symbol :interface-def
   [node st]
   (let [{:keys [:name]} (meta node)
@@ -110,14 +141,24 @@
                             (store-symbol child acc))
                           {}
                           children)]
+    (println sub-table)
     (assoc st name sub-table)))
 
-(defn store-symbols
-  "Stores the symbols for a parse tree in a symbol table"
-  [parse-tree]
-  (reduce (fn [acc node]
-            (store-symbol node acc))
-          {}
+(defn store-module-output
+  [node st]
+  (if (= (first node) :module)
+    (let [[_ _ module-name] node
+          signature-output (get-module-output-type node st)
+          node (push-metadata node {:output-type signature-output})]
+      [node (assoc st module-name signature-output)])
+    [node st]))
+
+(defn store-module-outputs
+  [parse-tree st]
+  (reduce (fn [[tree-acc st-acc] node]
+            (let [[new-node new-st] (store-module-output node st-acc)]
+              [(conj tree-acc new-node) (merge st-acc new-st)]))
+          [[] st]
           parse-tree))
 
 ;;;========================================
@@ -132,9 +173,8 @@
   [node symbol-table]
   (let [m (meta node)
         type (format-type node)
-        resolved-type (lookup-symbol type symbol-table)
-        new-meta (assoc m :type resolved-type)]
-    (with-meta node new-meta)))
+        resolved-type (lookup-symbol type symbol-table)]
+    (push-metadata node {:type resolved-type})))
 
 (defmethod resolve-type :struct-def
   [node symbol-table]
@@ -144,6 +184,16 @@
                       (map #(resolve-type % symbol-table))
                       (concat [kind name]))]
     (with-meta new-node m)))
+
+;; NOTE This method should only be called after we add the module outputs to the symbol table
+(defmethod resolve-type :module
+  [node symbol-table]
+  (let [inputs (as-> node n
+                      (find-child n :module-signature)
+                      (find-child n :module-inputs)
+                      (map #(format-type %) (rest n))
+                      (map #(lookup-symbol % symbol-table) n))]
+    (push-metadata node {:inputs inputs})))
 
 (defmethod resolve-type :struct-field
   [node symbol-table]
@@ -173,5 +223,7 @@
   "Adds all of the metadata to the parse tree"
   [parse-tree]
   (let [parse-tree (add-namespaces parse-tree)
-        symbol-table (store-symbols parse-tree)]
+        symbol-table (store-symbols parse-tree)
+        [parse-tree symbol-table] (store-module-outputs parse-tree symbol-table)
+        parse-tree (map #(resolve-type % symbol-table) parse-tree)]
     [parse-tree symbol-table]))

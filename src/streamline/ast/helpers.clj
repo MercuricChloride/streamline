@@ -89,6 +89,19 @@
         (str (string/join "." (butlast type) ) "[]")
         (str (string/join "." type)))))
 
+(defn node-type
+  "Returns the type of a node, or nil if it is a string or keyword"
+  [node]
+  (cond
+    (string? node) nil
+    (keyword? node) nil
+    :else (first node)))
+
+(defn find-child
+  "Finds a child node in a parse tree"
+  [node child-type]
+  (first (filter #(= (node-type %) child-type) node)))
+
 (defn ->conversion
   "Converts a conversion node into a Conversion protobuf message"
   [input]
