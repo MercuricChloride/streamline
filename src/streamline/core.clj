@@ -222,14 +222,14 @@
 (defn build-proto-message
   [name fields]
   (pg/render-resource "templates/proto/messages.mustache" {:name name
-                                                            :fields fields}))
+                                                           :fields fields}))
 
 (defmulti ->message
   "Converts a node into a protobuf message"
-  first)
+  (fn [node _symbol-table] (first node)))
 
 (defmethod ->message :default
-  [node]
+  [node st]
   (if (protobuf-node? node)
     (let [{:keys [:namespace :name]} (meta node)
           fields "//todo;"]
@@ -237,24 +237,70 @@
     nil))
 
 (defmethod ->message :interface-def
-  [node]
+  [node st]
   (let [{:keys [:namespace :name]} (meta node)
         [_ & children] node
         fields (string/join "\n" (map ->message children))]
     (build-proto-message name fields)))
+
+(defmulti store-symbol
+  "Stores the symbols for a node in a symbol table"
+  (fn [node _symbol-table] (first node)))
+
+(defmethod store-symbol :default
+  [node st]
+  (if (protobuf-node? node)
+    (let [{:keys [:namespace :name]} (meta node)
+          symbol (str namespace "." name)
+          array-name (str name "[]")
+          array-symbol (str namespace "." name "Array")]
+      (assoc st name symbol array-name array-symbol))
+    st))
+
+(defn resolve-symbol
+  [symbol symbol-table]
+  (loop [parts (string/split symbol #"\.")
+         symbol-table symbol-table]
+    (let [resolved-symbol (get symbol-table (first parts))]
+      (if (= (count parts) 1)
+      resolved-symbol
+      (recur (rest parts) resolved-symbol)))))
+
+(defmethod store-symbol :interface-def
+  [node st]
+  (let [{:keys [:name]} (meta node)
+        [_ & children] node
+        sub-table (reduce (fn [acc child]
+                            (store-symbol child acc))
+                          {}
+                          children)]
+    (assoc st name sub-table)))
+
+(defn store-symbols
+  "Stores the symbols for a parse tree in a symbol table"
+  [parse-tree]
+  (reduce (fn [acc node]
+            (store-symbol node acc))
+          {}
+          parse-tree))
 
 (defn create-protobuf-defs
   "Creates the protobuf file for a streamline file"
   [parse-tree]
   (let [namespace (get-namespace parse-tree)]
     {:namespace namespace
-     :messages (map ->message parse-tree)}))
+     :messages (string/join "\n" (map ->message parse-tree))}))
 
 (let [parse-tree (parser (slurp "sushi.strm"))
-      w-namespaces (add-namespaces parse-tree)]
-  (->> w-namespaces
-       create-protobuf-defs))
-       ;(pg/render-resource "templates/proto/protofile.mustache")))
+      w-namespaces (add-namespaces parse-tree)
+      symbol-table (store-symbols w-namespaces)
+      test-symbol "SomethingElse.Transfer[]"
+      ;(string/split "Sushi.PoolCreated[]" #"\.")
+      ;; protodefs (->> w-namespaces
+      ;;                create-protobuf-defs
+      ;;                (pg/render-resource "templates/proto/protofile.mustache"))
+      ]
+  (resolve-symbol test-symbol symbol-table))
 
 ;; (let [base-ast (construct-base-ast sushi)
 ;;       contracts (:contracts base-ast)

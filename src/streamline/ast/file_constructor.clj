@@ -5,7 +5,7 @@
    [spyglass.streamline.alpha.ast :as ast]
    [streamline.ast.analysis.type-validation :refer [construct-symbol-table
                                                     get-array-types]]
-   [streamline.ast.new-parser :refer [->node]]
+   [streamline.ast.builder :refer [->node]]
    [streamline.protobuf.helpers :refer [contract->protobuf structs->protobuf]]))
 
 (defmulti store-node
@@ -42,9 +42,9 @@
   [node acc]
   (assoc acc :instances (conj (:instances acc) node)))
 
-(defmethod store-node streamline.ast.new_parser.ast-import-statement
-  [node acc]
-  (assoc acc :imports (conj (:imports acc) node)))
+;; (defmethod store-node streamline.ast.new_parser.ast-import-statement
+;;   [node acc]
+;;   (assoc acc :imports (conj (:imports acc) node)))
 
 (defn- format-module-signatures
   "Replaces [] with Array for module signatures"
