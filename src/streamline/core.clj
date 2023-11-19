@@ -1,8 +1,9 @@
 (ns streamline.core
   (:require
-   [camel-snake-kebab.core :as csk]
    [clojure.string :as string]
+   [clojure.tools.reader :refer [resolve-symbol]]
    [pogonos.core :as pg]
+   [streamline.ast.metadata :as meta]
    [streamline.ast.parser :refer [parser]]
    [streamline.ast.writer :refer [write-ast]])
   (:gen-class))
@@ -168,139 +169,24 @@
         protobuf-signature {:inputs inputs :output output}]
     (assoc module :signature protobuf-signature)))
 
-(defn protobuf-node?
-  "Returns if an ast node will be used to generate a protobuf message"
-  [[kind & _]]
-  (get #{:interface-def
-         :struct-def
-         :event-def} kind))
+(defn traverse-and-return-tree
+  "Traverses a tree in a depth-first manner, applies 'f' to each node's value, and returns a new tree."
+  [f tree]
+  (if (seq tree)
+    (let [new-value (f (first tree)) ; Apply 'f' to the current node's value and store it
+          children (map #(traverse-and-return-tree f %) (rest tree))] ; Recursively apply to children
+      (cons new-value children)) ; Construct the new tree node
+    tree)) ; Return the tree as is if it's empty or a leaf
 
-(defmulti add-namespace
-  "Adds a namespace and name field to the meta of the nodes that need it to the parse tree"
-  (fn [node _namespace] (first node)))
-
-(defmethod add-namespace :default
-  [node namespace]
-  (if (protobuf-node? node)
-    (let [m (meta node)
-          name (->> node
-                    second
-                    csk/->PascalCase)
-          new-meta (assoc m
-                          :namespace namespace
-                          :name name)]
-      (with-meta node new-meta))
-    node))
-
-(defmethod add-namespace :interface-def
-  [node namespace]
-  (let [m (meta node)
-        interface-name (->> node
-                            second
-                            csk/->PascalCase)
-        new-meta (assoc m
-                        :namespace namespace
-                        :name interface-name)
-        [kind name & children] node
-        children-namespace (str namespace "." name)
-        new-children (map #(add-namespace % children-namespace) children)
-        node (concat [kind name] new-children)]
-    (with-meta node new-meta)))
-
-(defn get-namespace
-  "Returns the namespace for a streamline file"
-  [parse-tree]
-  (let [[_type _kind namespace] (first parse-tree)]
-    (csk/->snake_case namespace)))
-
-(defn add-namespaces
-  "Adds a namespace to the meta of the nodes that need it to the parse tree"
-  [parse-tree]
-  (let [namespace (get-namespace parse-tree)]
-    (map #(add-namespace % namespace) parse-tree)))
-
-(defn build-proto-message
-  [name fields]
-  (pg/render-resource "templates/proto/messages.mustache" {:name name
-                                                           :fields fields}))
-
-(defmulti ->message
-  "Converts a node into a protobuf message"
-  (fn [node _symbol-table] (first node)))
-
-(defmethod ->message :default
-  [node st]
-  (if (protobuf-node? node)
-    (let [{:keys [:namespace :name]} (meta node)
-          fields "//todo;"]
-      (build-proto-message name fields))
-    nil))
-
-(defmethod ->message :interface-def
-  [node st]
-  (let [{:keys [:namespace :name]} (meta node)
-        [_ & children] node
-        fields (string/join "\n" (map ->message children))]
-    (build-proto-message name fields)))
-
-(defmulti store-symbol
-  "Stores the symbols for a node in a symbol table"
-  (fn [node _symbol-table] (first node)))
-
-(defmethod store-symbol :default
-  [node st]
-  (if (protobuf-node? node)
-    (let [{:keys [:namespace :name]} (meta node)
-          symbol (str namespace "." name)
-          array-name (str name "[]")
-          array-symbol (str namespace "." name "Array")]
-      (assoc st name symbol array-name array-symbol))
-    st))
-
-(defn resolve-symbol
-  [symbol symbol-table]
-  (loop [parts (string/split symbol #"\.")
-         symbol-table symbol-table]
-    (let [resolved-symbol (get symbol-table (first parts))]
-      (if (= (count parts) 1)
-      resolved-symbol
-      (recur (rest parts) resolved-symbol)))))
-
-(defmethod store-symbol :interface-def
-  [node st]
-  (let [{:keys [:name]} (meta node)
-        [_ & children] node
-        sub-table (reduce (fn [acc child]
-                            (store-symbol child acc))
-                          {}
-                          children)]
-    (assoc st name sub-table)))
-
-(defn store-symbols
-  "Stores the symbols for a parse tree in a symbol table"
-  [parse-tree]
-  (reduce (fn [acc node]
-            (store-symbol node acc))
-          {}
-          parse-tree))
-
-(defn create-protobuf-defs
-  "Creates the protobuf file for a streamline file"
-  [parse-tree]
-  (let [namespace (get-namespace parse-tree)]
-    {:namespace namespace
-     :messages (string/join "\n" (map ->message parse-tree))}))
 
 (let [parse-tree (parser (slurp "sushi.strm"))
-      w-namespaces (add-namespaces parse-tree)
-      symbol-table (store-symbols w-namespaces)
-      test-symbol "SomethingElse.Transfer[]"
+      [ast symbol-table] (meta/add-metadata parse-tree)
       ;(string/split "Sushi.PoolCreated[]" #"\.")
       ;; protodefs (->> w-namespaces
       ;;                create-protobuf-defs
       ;;                (pg/render-resource "templates/proto/protofile.mustache"))
       ]
-  (resolve-symbol test-symbol symbol-table))
+  (map #(meta/resolve-type % symbol-table) ast))
 
 ;; (let [base-ast (construct-base-ast sushi)
 ;;       contracts (:contracts base-ast)
