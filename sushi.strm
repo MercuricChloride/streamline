@@ -15,7 +15,7 @@ interface SomethingElse {
 }
 
 struct Pools {
-     address token0;
+     Sushi.PoolCreated token0;
      address token1;
 }
 

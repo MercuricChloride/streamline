@@ -141,7 +141,6 @@
                             (store-symbol child acc))
                           {}
                           children)]
-    (println sub-table)
     (assoc st name sub-table)))
 
 (defn store-module-output
@@ -192,7 +191,13 @@
                       (find-child n :module-signature)
                       (find-child n :module-inputs)
                       (map #(format-type %) (rest n))
-                      (map #(lookup-symbol % symbol-table) n))]
+                      (map (fn [input]
+                             (let [input-symbol (lookup-symbol input symbol-table)
+                                   input-kind "map"
+                                   input-name input]
+                               {:type input-symbol
+                                :kind input-kind
+                                :name input-name})) n))]
     (push-metadata node {:inputs inputs})))
 
 (defmethod resolve-type :struct-field
@@ -204,8 +209,10 @@
                   (meta)
                   :type)
         new-node (concat [kind name type])
-        new-meta (assoc m :type proto)]
-    (with-meta new-node new-meta)))
+        new-meta {:type proto
+                  :name name
+                  :repeated (string/ends-with? type "[]")}]
+    (push-metadata new-node new-meta)))
 
 (defmethod resolve-type :default
   [node _]
