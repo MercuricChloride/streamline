@@ -225,7 +225,7 @@
                   (meta)
                   :type)
         new-meta {:type proto
-                  :name name
+                  :name (csk/->snake_case name)
                   :indexed true
                   :repeated (string/ends-with? type "[]")}
         new-node (concat [kind resolved-type name])]
@@ -239,7 +239,7 @@
                   (meta)
                   :type)
         new-meta {:type proto
-                  :name name
+                  :name (csk/->snake_case name)
                   :indexed false
                   :repeated (string/ends-with? type "[]")}
         new-node (concat [kind resolved-type name])]
@@ -254,7 +254,7 @@
                   :type)
         new-node (concat [kind name type])
         new-meta {:type proto
-                  :name name
+                  :name (csk/->snake_case name)
                   :repeated (string/ends-with? type "[]")}]
     (push-metadata new-node new-meta)))
 

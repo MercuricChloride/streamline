@@ -19,7 +19,7 @@
    that have a name and type string in their metadata"
   [fields]
   (string/join "\n" (map-indexed (fn [index field]
-                                   (pg/render-resource "templates/proto/field.mustache" (merge {:index index} (meta field)))) fields)))
+                                   (pg/render-resource "templates/proto/field.mustache" (merge {:index (inc index)} (meta field)))) fields)))
 
 (defmulti ->message
   "Converts a node into a protobuf message"
