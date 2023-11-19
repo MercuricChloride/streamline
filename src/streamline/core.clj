@@ -1,12 +1,10 @@
 (ns streamline.core
   (:require
-   [streamline.ast.dag :refer [construct-dag]]
-   [streamline.ast.file-constructor :refer [construct-base-ast]]
-   [streamline.ast.parser :refer [parser]]
-   [streamline.ast.writer :refer [write-ast]]
+   [camel-snake-kebab.core :as csk]
+   [clojure.string :as string]
    [pogonos.core :as pg]
-   [pogonos.partials :as partials]
-   [clojure.string :as string])
+   [streamline.ast.parser :refer [parser]]
+   [streamline.ast.writer :refer [write-ast]])
   (:gen-class))
 
 (defn -main
@@ -170,29 +168,117 @@
         protobuf-signature {:inputs inputs :output output}]
     (assoc module :signature protobuf-signature)))
 
-(let [base-ast (construct-base-ast sushi)
-      contracts (:contracts base-ast)
-      structs (:types base-ast)
+(defn protobuf-node?
+  "Returns if an ast node will be used to generate a protobuf message"
+  [[kind & _]]
+  (get #{:interface-def
+         :struct-def
+         :event-def} kind))
 
-      namespace (:name (:meta base-ast))
+(defmulti add-namespace
+  "Adds a namespace and name field to the meta of the nodes that need it to the parse tree"
+  (fn [node _namespace] (first node)))
 
-      protobuf-symbol-table (merge
-                             {"Block" "sf.ethereum.type.v2.Block"}
-                             (contracts->symbols contracts namespace)
-                             (structs->symbols structs namespace))
+(defmethod add-namespace :default
+  [node namespace]
+  (if (protobuf-node? node)
+    (let [m (meta node)
+          name (->> node
+                    second
+                    csk/->PascalCase)
+          new-meta (assoc m
+                          :namespace namespace
+                          :name name)]
+      (with-meta node new-meta))
+    node))
 
-      protobuf-paths (concat
-                      [namespace]
-                      (map #(str namespace "." (:name %)) contracts))
-      resolved-dag (into {} (map (fn [node]
-                                   (let [inputs (:inputs node)
-                                         output (:output node)
-                                         name (:module node)
-                                         inputs (map #(or (get protobuf-symbol-table %) %) inputs)
-                                         output (or (get protobuf-symbol-table output) output)]
-                                     [name {:inputs inputs :output output}])) (construct-dag base-ast)))]
-  (->> base-ast
-       :modules
-       (map #(format-module resolved-dag %))
-       (map render-module)
-       (string/join "\n\n")))
+(defmethod add-namespace :interface-def
+  [node namespace]
+  (let [m (meta node)
+        interface-name (->> node
+                            second
+                            csk/->PascalCase)
+        new-meta (assoc m
+                        :namespace namespace
+                        :name interface-name)
+        [kind name & children] node
+        children-namespace (str namespace "." name)
+        new-children (map #(add-namespace % children-namespace) children)
+        node (concat [kind name] new-children)]
+    (with-meta node new-meta)))
+
+(defn get-namespace
+  "Returns the namespace for a streamline file"
+  [parse-tree]
+  (let [[_type _kind namespace] (first parse-tree)]
+    (csk/->snake_case namespace)))
+
+(defn add-namespaces
+  "Adds a namespace to the meta of the nodes that need it to the parse tree"
+  [parse-tree]
+  (let [namespace (get-namespace parse-tree)]
+    (map #(add-namespace % namespace) parse-tree)))
+
+(defn build-proto-message
+  [name fields]
+  (pg/render-resource "templates/proto/messages.mustache" {:name name
+                                                            :fields fields}))
+
+(defmulti ->message
+  "Converts a node into a protobuf message"
+  first)
+
+(defmethod ->message :default
+  [node]
+  (if (protobuf-node? node)
+    (let [{:keys [:namespace :name]} (meta node)
+          fields "//todo;"]
+      (build-proto-message name fields))
+    nil))
+
+(defmethod ->message :interface-def
+  [node]
+  (let [{:keys [:namespace :name]} (meta node)
+        [_ & children] node
+        fields (string/join "\n" (map ->message children))]
+    (build-proto-message name fields)))
+
+(defn create-protobuf-defs
+  "Creates the protobuf file for a streamline file"
+  [parse-tree]
+  (let [namespace (get-namespace parse-tree)]
+    {:namespace namespace
+     :messages (map ->message parse-tree)}))
+
+(let [parse-tree (parser (slurp "sushi.strm"))
+      w-namespaces (add-namespaces parse-tree)]
+  (->> w-namespaces
+       create-protobuf-defs))
+       ;(pg/render-resource "templates/proto/protofile.mustache")))
+
+;; (let [base-ast (construct-base-ast sushi)
+;;       contracts (:contracts base-ast)
+;;       structs (:types base-ast)
+
+;;       namespace (:name (:meta base-ast))
+
+;;       protobuf-symbol-table (merge
+;;                              {"Block" "sf.ethereum.type.v2.Block"}
+;;                              (contracts->symbols contracts namespace)
+;;                              (structs->symbols structs namespace))
+
+;;       protobuf-paths (concat
+;;                       [namespace]
+;;                       (map #(str namespace "." (:name %)) contracts))
+;;       resolved-dag (into {} (map (fn [node]
+;;                                    (let [inputs (:inputs node)
+;;                                          output (:output node)
+;;                                          name (:module node)
+;;                                          inputs (map #(or (get protobuf-symbol-table %) %) inputs)
+;;                                          output (or (get protobuf-symbol-table output) output)]
+;;                                      [name {:inputs inputs :output output}])) (construct-dag base-ast)))]
+;;   (->> base-ast
+;;        :modules
+;;        (map #(format-module resolved-dag %))
+;;        (map render-module)
+;;        (string/join "\n\n")))
