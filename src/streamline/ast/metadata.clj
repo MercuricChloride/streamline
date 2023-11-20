@@ -133,6 +133,19 @@
       (assoc st name symbol array-name array-symbol))
     st))
 
+(defmethod store-symbol :event-def
+  [node st]
+  (if (protobuf-node? node)
+    (let [{:keys [:namespace :name]} (meta node)
+          symbol (str namespace "." name)
+          array-name (str name "[]")
+          array-symbol (str namespace "." name "Array")
+          interface-name (last (string/split namespace #"\."))
+          event-module (str "map_" (csk/->snake_case interface-name) "_" (csk/->snake_case name))]
+      (assoc st name symbol array-name {:symbol array-symbol
+                                        :module event-module}))
+    st))
+
 (defmethod store-symbol :interface-def
   [node st]
   (let [{:keys [:name]} (meta node)
@@ -148,7 +161,8 @@
   (if (= (first node) :module)
     (let [[_ _ module-name] node
           signature-output (get-module-output-type node st)
-          node (push-metadata node {:output-type signature-output})]
+          node (push-metadata node {:output-type signature-output})
+          node (push-metadata node {:name module-name})]
       [node (assoc st module-name signature-output)])
     [node st]))
 
@@ -271,8 +285,12 @@
 (defn add-metadata
   "Adds all of the metadata to the parse tree"
   [parse-tree]
+        ; create the initial parse tree
   (let [parse-tree (add-namespaces parse-tree)
+        ; create the initial symbol-table
         symbol-table (store-symbols parse-tree)
+        ; update the symbol table and parse tree with the module output metadata
         [parse-tree symbol-table] (store-module-outputs parse-tree symbol-table)
+        ; update the parse tree with the type and field type metadata
         parse-tree (map #(resolve-type % symbol-table) parse-tree)]
     [parse-tree symbol-table]))

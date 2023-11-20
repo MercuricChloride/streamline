@@ -3,7 +3,7 @@
    [streamline.ast.metadata :as metadata]
    [streamline.ast.parser :refer [parser]]
    [streamline.ast.writer :refer [write-ast]]
-   [streamline.templating.protobuf :refer [create-protobuf-defs]])
+   [streamline.templating.yaml.helpers :refer [generate-module-entry]])
   (:gen-class))
 
 (defn -main
@@ -18,5 +18,6 @@
 (def sushi (parser (slurp "sushi.strm")))
 
 (let [parse-tree (parser (slurp "sushi.strm"))
-      [ast symbol-table] (metadata/add-metadata parse-tree)]
-  (create-protobuf-defs ast))
+      [ast symbol-table] (metadata/add-metadata parse-tree)
+      modules (filter #(= (first %) :module) ast)]
+  (map generate-module-entry modules))
