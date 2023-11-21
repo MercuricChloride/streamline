@@ -1,0 +1,8 @@
+impl From<sf::ethereum::type::v2::Block> for Vec<{{event-name}}> {
+    fn from(block: sf::ethereum::type::v2::Block) -> Self {
+        block
+          .logs()
+          .filter_map(|log| {{event-name}}::match_and_decode(log))
+          .collect::Vec<_>()
+    }
+}

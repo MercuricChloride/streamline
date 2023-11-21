@@ -1,8 +1,7 @@
 (ns streamline.ast.builder
   (:require
-   [camel-snake-kebab.core :as csk]
    [clojure.string :as string]
-   [spyglass.streamline.alpha.ast :as ast]))
+   [streamline.templating.helpers :refer [->snake-case]]))
 
 (defmacro require!
   "Tests a predicate, and if false throws an exception"
@@ -130,7 +129,7 @@
                                     (= (first %) :function-wo-return)))
                        (map ->node)
                        (into []))]
-    {:name (csk/->snake_case name)
+    {:name (->snake-case name)
      :events events
      :functions functions}))
 

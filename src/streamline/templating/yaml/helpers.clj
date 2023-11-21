@@ -1,8 +1,7 @@
 (ns streamline.templating.yaml.helpers
   (:require
-   [clj-yaml.core :as yaml]
-   [streamline.ast.helpers :refer [find-child]]
-   [camel-snake-kebab.core :as csk]))
+   [camel-snake-kebab.core :as csk :refer [->snake_case]]
+   [clj-yaml.core :as yaml]))
 
 (def default-yaml
   {:specVersion "v0.1.0"
@@ -49,7 +48,7 @@
 (defn generate-event-fn
   [interface-name event]
   (let [{:keys [:name :namespace]} (meta event)
-        module-name (str "map_" (csk/->snake_case interface-name) "_" (csk/->snake_case name))
+        module-name (str "map_" (->snake_case interface-name) "_" (->snake_case name))
         event-proto (str "proto:" namespace "." name "Array")]
     {:name module-name
      :kind "map"
@@ -69,7 +68,6 @@
         package (generate-yaml-package namespace)
         modules (map generate-module-entry modules)
         modules (concat (flatten (map generate-interface-event-fns interfaces)) modules )]
-    (tap> modules)
     (yaml/generate-string (assoc default-yaml
                                  :package package
                                  :protobuf protobuf

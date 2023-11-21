@@ -4,6 +4,7 @@
    [streamline.ast.metadata :as metadata :refer [get-namespace]]
    [streamline.ast.parser :refer [parser]]
    [streamline.ast.writer :refer [write-ast]]
+   [streamline.templating.protobuf :refer [create-protobuf-defs]]
    [streamline.templating.rust.helpers :refer [get-all-conversions]]
    [streamline.templating.yaml.helpers :refer [generate-yaml]])
   (:gen-class))
@@ -27,5 +28,6 @@
                    (filter #(= (first %) :module)))
       interfaces (->> ast
                       (filter #(= (first %) :interface-def)))
-      yaml (generate-yaml ast-ns modules interfaces symbol-table)]
-  (get-all-conversions ast))
+     yaml (generate-yaml ast-ns modules interfaces symbol-table)
+     proto-defs (create-protobuf-defs ast)]
+  proto-defs)

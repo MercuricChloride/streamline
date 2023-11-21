@@ -1,0 +1,9 @@
+impl From<{{event-name}}> for {{type-name}} {
+    fn from(event: {{event-name}}) -> Self {
+        {{type-name}} {
+          {{#fields}}
+              {{.}}: &event.{{.}}.into(),
+          {{/fields}}
+        }
+    }
+}

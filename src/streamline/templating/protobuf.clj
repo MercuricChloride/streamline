@@ -2,7 +2,8 @@
   (:require
    [clojure.string :as string]
    [pogonos.core :as pg]
-   [streamline.ast.metadata :refer [get-namespace protobuf-node?]]))
+   [streamline.ast.metadata :refer [get-namespace protobuf-node?]]
+   [streamline.templating.helpers :refer [->snake-case]]))
 
 (defn build-proto-message
   ([name fields]
@@ -19,8 +20,11 @@
    that have a name and type string in their metadata"
   [fields]
   (string/join "\n" (map-indexed (fn [index field]
-                                   (pg/render-resource "templates/proto/field.mustache" (merge {:index (inc index)} (meta field)))) fields)))
+                                   (let [{:keys [:name :type]} (meta field)
+                                         name (->snake-case name)]
+                                     (pg/render-resource "templates/proto/field.mustache" (merge (meta field) {:index (inc index) :name name})))
 
+                                   (pg/render-resource "templates/proto/field.mustache" (merge (meta field) {:index (inc index)}))) fields)))
 (defmulti ->message
   "Converts a node into a protobuf message"
   (fn [node] (first node)))

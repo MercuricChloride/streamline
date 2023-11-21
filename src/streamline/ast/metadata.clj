@@ -1,11 +1,10 @@
 (ns streamline.ast.metadata
   (:require
    [camel-snake-kebab.core :as csk]
-   [clojure.inspector :as inspector]
    [clojure.pprint :as pprint]
-   [clojure.set :refer [difference]]
    [clojure.string :as string]
-   [streamline.ast.helpers :refer [find-child format-type]]))
+   [streamline.ast.helpers :refer [find-child format-type]]
+   [streamline.templating.helpers :refer [->snake-case]]))
 
 (defn protobuf-node?
   "Returns if an ast node will be used to generate a protobuf message"
@@ -53,7 +52,7 @@
   "Returns the namespace for a streamline file"
   [parse-tree]
   (let [[_type _kind namespace] (first parse-tree)]
-    (csk/->snake_case namespace)))
+    (->snake-case namespace)))
 
 (defn add-namespaces
   "Adds a namespace to the meta of the nodes that need it to the parse tree"
@@ -145,7 +144,7 @@
         array-name (str name "[]")
         array-symbol (str namespace "." name "Array")
         interface-name (last (string/split namespace #"\."))
-        event-module (str "map_" (csk/->snake_case interface-name) "_" (csk/->snake_case name))
+        event-module (str "map_" (->snake-case interface-name) "_" (->snake-case name))
         sub-table (assoc sub-table name symbol array-name array-symbol)
         parent-name (last (string/split namespace #"\."))]
     [sub-table {:event-fn event-module
@@ -225,7 +224,6 @@
                  (map (fn [input]
                         (let [event-fns (:event-fns (meta symbol-table))
                               input-symbol (or (get event-fns input) (lookup-symbol input symbol-table))
-                              _ (tap> (get event-fns input))
                               input-kind "map"
                               input-name input]
                           {:type input-symbol
@@ -248,8 +246,11 @@
         [kind name & children] node
         new-node (->> children
                       (map #(resolve-type % symbol-table))
-                      (concat [kind name]))]
-    (with-meta new-node m)))
+                      (concat [kind name]))
+        params (->> children
+                    (map last)
+                    (map ->snake-case))]
+    (with-meta new-node (merge m {:params params}))))
 
 (defmethod resolve-type :indexed-event-param
   [node symbol-table]
@@ -259,7 +260,7 @@
                   (meta)
                   :type)
         new-meta {:type proto
-                  :name (csk/->snake_case name)
+                  :name (->snake-case name)
                   :indexed true
                   :repeated (string/ends-with? type "[]")}
         new-node (concat [kind resolved-type name])]
@@ -273,7 +274,7 @@
                   (meta)
                   :type)
         new-meta {:type proto
-                  :name (csk/->snake_case name)
+                  :name (->snake-case name)
                   :indexed false
                   :repeated (string/ends-with? type "[]")}
         new-node (concat [kind resolved-type name])]
@@ -288,7 +289,7 @@
                   :type)
         new-node (concat [kind name type])
         new-meta {:type proto
-                  :name (csk/->snake_case name)
+                  :name (->snake-case name)
                   :repeated (string/ends-with? type "[]")}]
     (push-metadata new-node new-meta)))
 

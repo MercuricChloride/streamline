@@ -1,9 +1,8 @@
 (ns streamline.protobuf.helpers
-  (:require [streamline.ast.helpers :refer :all]
-            [sf.substreams.v1 :as sf]
-            [clojure.string :as string]
-            [spyglass.streamline.alpha.ast :as ast]
-            [camel-snake-kebab.core :as csk]))
+  (:require
+   [camel-snake-kebab.core :as csk :refer [->snake_case]]
+   [clojure.string :as string]
+   [streamline.ast.helpers :refer :all]))
 
 (defn solidity-type->protobuf-type
   [input]
@@ -27,7 +26,7 @@
   (let [type (:type input)
         array? (string/ends-with? type "[]")
         type (solidity-type->protobuf-type type)
-        name (csk/->snake_case (:name input))]
+        name (->snake_case (:name input))]
     (if array?
       (str "repeated " (string/replace type #"\[\]" "") " " name)
       (str type " " name))))
@@ -49,7 +48,7 @@
         event-message (str "message Events {\n"
                            (string/join "\n" (map-indexed (fn [index event]
                                           (let [event-name (:name event)
-                                                field-name (csk/->snake_case event-name)
+                                                field-name (->snake_case event-name)
                                                 type-name (csk/->PascalCase event-name)
                                                 field-tag (inc index)]
                                           (str "repeated " type-name " " field-name " = " field-tag ";\n")))
