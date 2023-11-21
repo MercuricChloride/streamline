@@ -10,10 +10,6 @@ interface Sushi {
     );
 }
 
-interface SomethingElse {
-    event Transfer(address from, address to, address tokenId);
-}
-
 struct Pools {
      Sushi.PoolCreated token0;
      address token1;

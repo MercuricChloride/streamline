@@ -6,11 +6,6 @@
 
 (def default-yaml
   {:specVersion "v0.1.0"
-   :package {:name "streamline_test"
-             :version "0.1.0"
-             :url "spygpc.com/streamline"}
-   :protobuf {:files ["foo.proto"]
-              :import-paths ["/tmp/streamline/proto/"]}
    :binaries {:default {:type "wasm/rust-v1"
                         :file "/tmp/streamline/streamline.wasm"}}})
 
@@ -39,4 +34,23 @@
      :inputs inputs
      :output {:type (str "proto:" output-type)}}))
 
-(yaml/generate-string default-yaml :dumper-options {:flow-style :block})
+(defn generate-yaml-protobufs
+  [namespace]
+  {:files [(str namespace ".proto")]
+   :import-paths ["/tmp/streamline/proto/"]})
+
+(defn generate-yaml-package
+  [namespace]
+  {:name namespace
+   :version "0.1.0"
+   :url "spygpc.com/streamline"})
+
+(defn generate-yaml
+  [namespace modules]
+  (let [protobuf (generate-yaml-protobufs namespace)
+        package (generate-yaml-package namespace)
+        modules (map generate-module-entry modules)]
+    (yaml/generate-string (assoc default-yaml
+                                 :package package
+                                 :protobuf protobuf
+                                 :modules modules) :dumper-options {:flow-style :block})))

@@ -11,16 +11,16 @@
 
 (defmethod ->expr :struct-expression-field
   [input]
-   (let [[_ field-name expr] input]
-        (ast/new-StructLiteralField {:name field-name
-                                     :value (->expr expr)})))
+  (let [[_ field-name expr] input]
+    (ast/new-StructLiteralField {:name field-name
+                                 :value (->expr expr)})))
 
 (defmethod ->expr :struct-expression
   [input]
-   (let [[_ struct-name & fields] input
-         fields (into [] (map ->expr fields))]
-     (ast/new-Expression {:expression {:literal {:literal {:struct {:name struct-name
-                                                                    :fields fields}}}}})))
+  (let [[_ struct-name & fields] input
+        fields (into [] (map ->expr fields))]
+    (ast/new-Expression {:expression {:literal {:literal {:struct {:name struct-name
+                                                                   :fields fields}}}}})))
 
 (defmethod ->expr :function-call
   [input]
@@ -75,19 +75,19 @@
 (defmethod ->function :hof
   [input]
   (let [[_ parent-fn & lambda] input
-          inputs (into [] (butlast lambda))
-          expression (last lambda)]
-   (ast/new-Function {:function {:hof {:parent parent-fn
-                                       :inputs inputs
-                                       :body (->expr expression)}}})))
+        inputs (into [] (butlast lambda))
+        expression (last lambda)]
+    (ast/new-Function {:function {:hof {:parent parent-fn
+                                        :inputs inputs
+                                        :body (->expr expression)}}})))
 
 (defn format-type
   "Formats a type node into a string"
   [type]
   (let [type (rest type)]
     (if (= (last type) "[]")
-        (str (string/join "." (butlast type) ) "[]")
-        (str (string/join "." type)))))
+      (str (string/join "." (butlast type)) "[]")
+      (str (string/join "." type)))))
 
 (defn node-type
   "Returns the type of a node, or nil if it is a string or keyword"
@@ -129,10 +129,10 @@
   "Returns an AST node for a module definition"
   [input]
   (let [[_ type ident signature & pipeline] input]
-       (ast/new-ModuleDef {:kind type
-                           :identifier ident
-                           :signature (->module-signature signature)
-                           :pipeline (map ->function pipeline)})))
+    (ast/new-ModuleDef {:kind type
+                        :identifier ident
+                        :signature (->module-signature signature)
+                        :pipeline (map ->function pipeline)})))
 
 (defn ->contract-instance
   "Returns an AST node for a contract instance"
@@ -143,23 +143,26 @@
                                :instance-name name})))
 
 (defn ->struct-field
- [input]
- (let [[_ type name] input]
-  (ast/new-StructField {:type (format-type type)
-                        :name name})))
-
+  [input]
+  (let [[_ type name] input]
+    (ast/new-StructField {:type (format-type type)
+                          :name name})))
 
 (defn ->structdef
- "Converts a structdef ast node into a StructDef message"
- [input]
- (let [[_ name & fields] input
-       fields (into [] (map ->struct-field fields))]
+  "Converts a structdef ast node into a StructDef message"
+  [input]
+  (let [[_ name & fields] input
+        fields (into [] (map ->struct-field fields))]
     (ast/new-StructDef {:name name
                         :fields fields})))
 
 (defmulti ->abi
   "Converts a parse tree node for a function or event, into it's ABI JSON representation"
   first)
+
+(defmethod ->abi :default
+  [input]
+  nil)
 
 (defmethod ->abi :function-w-return
   [input]
@@ -186,14 +189,14 @@
   [input]
   (let [[_ type name] input]
     (ast/new-FunctionInput
-     {:type type
+     {:type (format-type type)
       :name name})))
 
 (defmethod ->abi :unnamed-return
   [input]
   (let [[_ type] input]
     (ast/new-FunctionInput
-     {:type type
+     {:type (format-type type)
       :name ""})))
 
 (defmethod ->abi :event-def
@@ -209,7 +212,7 @@
   [input]
   (let [[_ type name] input]
     (ast/new-EventInput
-     {:type type
+     {:type (format-type type)
       :name name
       :indexed true})))
 
@@ -217,7 +220,7 @@
   [input]
   (let [[_ type name] input]
     (ast/new-EventInput
-     {:type type
+     {:type (format-type type)
       :name name
       :indexed false})))
 
@@ -235,8 +238,14 @@
         abi-json (->> (concat events functions)
                       (into [])
                       (json/write-str))]
-    (ast/new-ContractAbi
-     {:name name
-      :abi-json abi-json
-      :functions functions
-      :events events})))
+    {:name name
+     :abi-json abi-json
+     :functions functions
+     :events events}))
+
+(defn generate-abi
+  "Generates an ABI JSON string from a parse tree"
+  [parse-tree]
+  (->> parse-tree
+       (map ->abi)
+       (filter #(not= % nil))))

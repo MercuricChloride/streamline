@@ -1,6 +1,7 @@
 (ns streamline.ast.metadata
   (:require
    [camel-snake-kebab.core :as csk]
+   [clojure.set :refer [difference]]
    [clojure.string :as string]
    [streamline.ast.helpers :refer [find-child format-type]]))
 
@@ -279,6 +280,22 @@
     (let [meta (meta node)]
       (with-meta node meta))))
 
+(defn get-module-inputs
+  [module]
+  (-> module
+      (find-child :module-signature)
+      (find-child :module-inputs)
+      rest))
+
+(defn add-event-fns
+  [parse-tree]
+  (let [modules (filter #(= (first %) :module) parse-tree)
+        module-set (set (map #(get % 2) modules))
+        module-input-set (set (flatten (map get-module-inputs modules)))
+        ; any inputs that are not in the module set are outputs of event-fns
+        event-fns (difference module-input-set module-set)]
+    event-fns))
+
 ;;;========================================
 ;;; PUBLIC METADATA HELPERS
 ;;; =======================================
@@ -293,4 +310,6 @@
         [parse-tree symbol-table] (store-module-outputs parse-tree symbol-table)
         ; update the parse tree with the type and field type metadata
         parse-tree (map #(resolve-type % symbol-table) parse-tree)]
+        ; create a set of all of the module names
+        ;event-fns (add-event-fns parse-tree)
     [parse-tree symbol-table]))

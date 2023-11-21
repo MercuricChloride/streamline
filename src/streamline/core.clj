@@ -1,9 +1,9 @@
 (ns streamline.core
   (:require
+   [streamline.ast.helpers :refer [generate-abi]]
    [streamline.ast.metadata :as metadata]
    [streamline.ast.parser :refer [parser]]
-   [streamline.ast.writer :refer [write-ast]]
-   [streamline.templating.yaml.helpers :refer [generate-module-entry]])
+   [streamline.ast.writer :refer [write-ast]])
   (:gen-class))
 
 (defn -main
@@ -19,5 +19,5 @@
 
 (let [parse-tree (parser (slurp "sushi.strm"))
       [ast symbol-table] (metadata/add-metadata parse-tree)
-      modules (filter #(= (first %) :module) ast)]
-  (map generate-module-entry modules))
+      abi-json (generate-abi ast)]
+  abi-json)
