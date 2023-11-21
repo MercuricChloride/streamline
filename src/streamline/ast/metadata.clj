@@ -4,7 +4,7 @@
    [clojure.pprint :as pprint]
    [clojure.string :as string]
    [streamline.ast.helpers :refer [find-child format-type]]
-   [streamline.templating.helpers :refer [->snake-case]]))
+   [streamline.templating.helpers :refer [->snake-case lookup-symbol]]))
 
 (defn protobuf-node?
   "Returns if an ast node will be used to generate a protobuf message"
@@ -64,14 +64,6 @@
 ;;; SYMBOL TABLE HELPERS
 ;;; =======================================
 
-(defn solidity-type?
-  [type]
-  (or (string/starts-with? type "uint")
-      (string/starts-with? type "int")
-      (string/starts-with? type "bytes")
-      (string/starts-with? type "bool")
-      (string/starts-with? type "string")
-      (string/starts-with? type "address")))
 
 (defn push-metadata
   "Pushes metadata to a node"
@@ -79,23 +71,6 @@
   (let [m (meta node)
         new-meta (merge m metadata-map)]
     (with-meta node new-meta)))
-
-(defn solidity->protobuf-type
-  [type]
-  (cond (= "bool" type) "boolean"
-        (= "string" type) "string"
-        :else "string"))
-
-(defn lookup-symbol
-  [symbol symbol-table]
-  (if (solidity-type? symbol)
-    (solidity->protobuf-type symbol)
-    (loop [parts (string/split symbol #"\.")
-           symbol-table symbol-table]
-      (let [resolved-symbol (get symbol-table (first parts))]
-        (if (= (count parts) 1)
-          resolved-symbol
-          (recur (rest parts) resolved-symbol))))))
 
 (defn get-module-output-type
   "Returns the output type of a module"

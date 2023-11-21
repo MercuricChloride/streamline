@@ -1,0 +1,7 @@
+
+#[substreams::handlers::map]
+pub fn {{name}}({{inputs}}) -> {{output}} {
+    pipe!(({{inputs}})
+    {{{body}}}
+    ).into()
+}

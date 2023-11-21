@@ -1,0 +1,19 @@
+pub fn map<T, U, F>(iter: impl Iterator<Item = T>, mut f: F) -> Vec<U>
+where
+    F: FnMut(T) -> U,
+{
+    iter.map(|item| f(item)).collect()
+}
+
+fn filter<T, F>(iter: impl Iterator<Item = T>, mut f: F) -> Vec<T>
+where
+    F: FnMut(&T) -> bool,
+{
+    iter.filter(|item| f(item)).collect()
+}
+
+macro_rules! hof {
+    ($hof: ident, $iter: ident, $closure: expr) => {
+        $hof($iter.into_iter(), $closure)
+    };
+}

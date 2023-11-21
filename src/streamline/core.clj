@@ -6,8 +6,8 @@
    [streamline.ast.helpers :refer [generate-abi]]
    [streamline.ast.metadata :as metadata :refer [get-namespace]]
    [streamline.ast.parser :refer [parser]]
-   [streamline.ast.writer :refer [write-ast]]
    [streamline.templating.protobuf :refer [create-protobuf-defs]]
+   [streamline.templating.rust.functions :refer [create-mfn]]
    [streamline.templating.rust.helpers :refer [get-all-conversions]]
    [streamline.templating.yaml.helpers :refer [generate-yaml]])
   (:gen-class))
@@ -57,7 +57,8 @@
   (let [path (first args)]
     (bundle-file path)))
 
-(let [parse-tree (parser (slurp "sushi.strm"))
+(let [input-file (slurp "sushi.strm")
+      parse-tree (parser input-file)
       [ast symbol-table] (metadata/add-metadata parse-tree)
       abis (generate-abi ast)
       _ (write-abis abis)
@@ -68,5 +69,7 @@
                       (filter #(= (first %) :interface-def)))
       yaml (generate-yaml ast-ns modules interfaces symbol-table)
       proto-defs (create-protobuf-defs ast)
-      conversions (get-all-conversions ast symbol-table)]
-  conversions)
+      conversions (get-all-conversions ast symbol-table)
+      fns (as-> modules m
+                     (first m))]
+  (create-mfn fns symbol-table))

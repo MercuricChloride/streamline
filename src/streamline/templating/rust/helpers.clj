@@ -1,19 +1,9 @@
 (ns streamline.templating.rust.helpers
   (:require
-   [camel-snake-kebab.core :as csk]
    [clojure.string :as string]
    [pogonos.core :as pg]
-   [streamline.templating.helpers :refer [->snake-case]]))
+   [streamline.templating.helpers :refer [format-rust-path]]))
 
-(defn format-rust-path
-  "Converts a protobuf path into it's rust equivalent"
-  [path]
-  (let [parts (string/split path #"\.")
-        path-parts (->> (butlast parts)
-                        (mapv ->snake-case))
-        name (csk/->PascalCase (last parts))
-        full-path (conj path-parts name)]
-    (string/join "::" full-path)))
 
 (defn array-type-conversion
   [type]

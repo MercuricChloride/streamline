@@ -22,7 +22,7 @@ struct Pools {
 mfn pools_created:
 (Sushi.PoolCreated[]) -> Pools[] {
     map (p) => Pools {
-        token0: p.token0,
+        token0: 542,
         token1: p.token1,
     };
     map (p) => Pools {
