@@ -1,32 +1,33 @@
-# Streamline
+# Streamline 🏊 
 
-A language for Substreams
-
-## Installation
-
-Download from http://example.com/FIXME.
+A delightfully simple declarative, data driven programming language built for the EVM, specifically for developing and using substreams in a more intuitive and powerful manner.
 
 ## Usage
 
-FIXME: explanation
+#### NOTE The startup of the JVM is slow. I will release a standalone built for native hardware. But its not the end of the world.
+#### TODO Bundle this into a standalone executable.
 
-    $ java -jar streamline-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
+    $ lein run [PATH-TO-STRM-FILE]
 
 ## Examples
+TODO
 
-...
+### Bugs / Features in progress
 
-### Bugs
+I'm sure there are lots of bugs waiting to be found. If you find something please let me know!
 
-...
+#### Features ready by 11/27/2023
+1. Store Modules (This is coming super soon)
+2. Arbitrary Functions
+3. Modules w/ Param inputs
+4. Helpers for bootstrapping and fetching abis for contracts. Think `streamline init`
+5. Contract Instances
+6. Sink Configs
 
-### Any Other Sections
-### That You Think
-### Might be Useful
+#### Features coming soon
+1. Arbitrary substeams spkg interop
+2. Live REPL for substreams development, without wasting your data. (We will offer a free endpoint to query raw block data from)
+3. LSP and Editor Support for things other than emacs, since I already built that :)
 
 ## License
 
