@@ -73,36 +73,10 @@
   [inputs]
   (->> inputs
        rest
-       (map format-type)
-       tap>)
-  (->> inputs
-       rest
        (map #(format-type %))
        (string/join ", ")))
 
 (defmulti ->function (fn [node _symbol-table] (first node)))
-
-(defn create-mfn
-  "Converts a module function into a rust function"
-  [module st]
-  (let [[_ _kind _name _signature & pipeline] module
-        m (meta module)
-        name (->snake-case (:name m))
-        inputs (as-> m m
-                 (:inputs m)
-                 (map :name m)
-                 (map #(lookup-symbol % st) m)
-                 (map #(format-rust-path %) m)
-                 (map-indexed (fn [i path] (str "input_" i ": " path)) m)
-                 (string/join "," m))
-        output-type (format-rust-path (:output-type m))
-        body (string/join "\n" (map #(->function % st) pipeline))]
-    (pg/render-resource
-     "templates/rust/functions/mfn.mustache"
-     {:name name
-      :inputs inputs
-      :output output-type
-      :body body})))
 
 (defmethod ->function :lambda
   [input st]
@@ -126,3 +100,25 @@
           :inputs inputs
           :body body})
         (str "=> "))))
+
+(defn create-mfn
+  "Converts a module function into a rust function"
+  [module st]
+  (let [[_ _kind _name _signature & pipeline] module
+        m (meta module)
+        name (->snake-case (:name m))
+        inputs (as-> m m
+                 (:inputs m)
+                 (map :name m)
+                 (map #(lookup-symbol % st) m)
+                 (map #(format-rust-path %) m)
+                 (map-indexed (fn [i path] (str "input_" i ": " path)) m)
+                 (string/join "," m))
+        output-type (format-rust-path (:output-type m))
+        body (string/join "\n" (map #(->function % st) pipeline))]
+    (pg/render-resource
+     "templates/rust/functions/mfn.mustache"
+     {:name name
+      :inputs inputs
+      :output output-type
+      :body body})))

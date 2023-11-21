@@ -71,5 +71,6 @@
       proto-defs (create-protobuf-defs ast)
       conversions (get-all-conversions ast symbol-table)
       fns (as-> modules m
-                     (first m))]
-  (create-mfn fns symbol-table))
+                     (map #(create-mfn % symbol-table) m)
+                     (string/join "\n" m))]
+  fns)
