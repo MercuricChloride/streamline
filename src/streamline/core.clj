@@ -6,7 +6,7 @@
    [streamline.ast.helpers :refer [generate-abi]]
    [streamline.ast.metadata :as metadata :refer [get-namespace]]
    [streamline.ast.parser :refer [parser]]
-   [streamline.templating.protobuf :refer [create-protobuf-defs]]
+   [streamline.templating.protobufs.helpers :refer [create-protobuf-defs]]
    [streamline.templating.rust.functions :refer [create-mfn]]
    [streamline.templating.rust.helpers :refer [get-all-conversions]]
    [streamline.templating.yaml.helpers :refer [generate-yaml]])
@@ -15,8 +15,6 @@
 (def parse-tree (parser (slurp "streamline.strm")))
 
 (def sushi (parser (slurp "sushi.strm")))
-
-(require '[clojure.java.io :as io])
 
 (defn write-to-path
   [path content]

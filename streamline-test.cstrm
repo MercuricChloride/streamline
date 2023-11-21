@@ -1,94 +1,0 @@
-ÿ
-mapsomething_elseb
-?[:type "Erc721" "Transfer" "Array"].[:type "Foo"].[:type "Bar"][:type "SomethingElse" "Array"]*ƒ€
-maptransfero
-m"k
-SomethingElse
-from*
-
-transferfrom
-to*
-
-transferto"
-tokenId*
-
-transfertokenId…
-mapinto_another_thing6
-[:type "map_something_else"][:type "AnotherThing"]*2
-0
-things&
-$""
-AnotherThing
-thingsthings:S
-SomethingElse[]AnotherThing*2
-0
-things&
-$""
-AnotherThing
-thingsthings:Ÿ
-Erc721.TransferSomethingElse*}
-{
-transfero
-m"k
-SomethingElse
-from*
-
-transferfrom
-to*
-
-transferto"
-tokenId*
-
-transfertokenId
-@
-SomethingElse
-fromaddress
-toaddress
-tokenIduint
-)
-AnotherThing
-thingsSomethingElse[]"½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]*ísyntax = "proto3";
-
-package streamline_test.Erc721;
-
-message PoolCreated{
-string token_0 = 1;
-string token_1 = 2;
-string fee = 3;
-string tick_spacing = 4;
-string pool = 5;
-}
-
-message Events {
-repeated PoolCreated pool_created = 1;
-}
-
-
-
-
-*Äsyntax = "proto3";
-
-package streamline_test.structs;
-
-message SomethingElse{
-string from = 1;
-string to = 2;
-string token_id = 3;
-}
-
-
-
-message AnotherThing{
-repeated SomethingElse things = 1;
-}
-
-
-À
-Erc721½[{"type":"event","name":"PoolCreated","inputs":[{"type":"address","name":"token0","indexed":true},{"type":"address","name":"token1","indexed":true},{"type":"uint24","name":"fee","indexed":true},{"type":"int24","name":"tickSpacing","indexed":false},{"type":"address","name":"pool","indexed":false}],"anonymous":false}]v
-eventPoolCreated
-addresstoken0
-addresstoken1
-uint24fee
-int24tickSpacing
-addresspoolJ
-streamline_test

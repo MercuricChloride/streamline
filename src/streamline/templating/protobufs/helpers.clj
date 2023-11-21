@@ -1,4 +1,4 @@
-(ns streamline.templating.protobuf
+(ns streamline.templating.protobufs.helpers
   (:require
    [clojure.string :as string]
    [pogonos.core :as pg]
@@ -63,9 +63,10 @@
   "Creates the protobuf file for a streamline file"
   [parse-tree]
   (let [namespace (get-namespace parse-tree)]
-    (pg/render-resource "templates/proto/protofile.mustache" {:namespace namespace
-                                                              :messages (as-> parse-tree t
-                                                                          (map ->message t)
-                                                                          (string/join "\n" t)
-                                                                          (string/replace t (str namespace ".") "")) ;replace all instances of the namespace in fields with nothing
-                                                              })))
+    (pg/render-resource
+     "templates/proto/protofile.mustache"
+     {:namespace namespace
+      :messages (as-> parse-tree t
+                  (map ->message t)
+                  (string/join "\n" t)
+                  (string/replace t (str namespace ".") ""))})));replace all instances of the namespace in fields with nothing

@@ -1,0 +1,11 @@
+sink subgraphSink;
+
+struct EntityChanges {
+       EntityChange[] changes
+}
+
+struct EntityChange {
+       ...
+}
+
+map graph_out: -> EntityChanges
