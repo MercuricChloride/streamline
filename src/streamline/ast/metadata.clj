@@ -146,9 +146,10 @@
         array-symbol (str namespace "." name "Array")
         interface-name (last (string/split namespace #"\."))
         event-module (str "map_" (csk/->snake_case interface-name) "_" (csk/->snake_case name))
-        sub-table (assoc sub-table name symbol array-name array-symbol)]
+        sub-table (assoc sub-table name symbol array-name array-symbol)
+        parent-name (last (string/split namespace #"\."))]
     [sub-table {:event-fn event-module
-                :event-fn-output array-symbol}]))
+                :event-fn-output (str parent-name "." array-name)}]))
 
 (defmethod store-symbol :interface-def
   [node st]
@@ -164,8 +165,9 @@
         symbol-table (reduce (fn [st-acc {:keys [:event-fn :event-fn-output]}]
                                (assoc st-acc event-fn event-fn-output))
                              (assoc st name sub-table)
-                             event-fns)]
-    symbol-table))
+                             event-fns)
+        st-meta-fns (:event-fns (meta st))]
+    (push-metadata symbol-table {:event-fns (concat (map :event-fn event-fns) st-meta-fns)})))
 
 (defn store-module-output
   [node st]
@@ -214,7 +216,7 @@
   (let [inputs (as-> node n
                  (find-child n :module-signature)
                  (find-child n :module-inputs)
-                 (map #(format-type %) (rest n))
+                 (map format-type (rest n)) ; get all the types formatted
                  (map (fn [input]
                         (let [input-symbol (lookup-symbol input symbol-table)
                               input-kind "map"
