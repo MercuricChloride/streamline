@@ -1,5 +1,6 @@
 (ns streamline.core
   (:require
+   [clojure.inspector :refer [inspect-tree]]
    [streamline.ast.helpers :refer [generate-abi]]
    [streamline.ast.metadata :as metadata]
    [streamline.ast.parser :refer [parser]]
@@ -20,4 +21,4 @@
 (let [parse-tree (parser (slurp "sushi.strm"))
       [ast symbol-table] (metadata/add-metadata parse-tree)
       abi-json (generate-abi ast)]
-  abi-json)
+  symbol-table)

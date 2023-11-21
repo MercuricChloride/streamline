@@ -1,6 +1,8 @@
 (ns streamline.ast.metadata
   (:require
    [camel-snake-kebab.core :as csk]
+   [clojure.inspector :as inspector]
+   [clojure.pprint :as pprint]
    [clojure.set :refer [difference]]
    [clojure.string :as string]
    [streamline.ast.helpers :refer [find-child format-type]]))
@@ -114,7 +116,7 @@
 
 (defmulti store-symbol
   "Stores the symbols for a node in a symbol table"
-  (fn [node _symbol-table] (first node)))
+  (fn [node & args] (first node)))
 
 (defn store-symbols
   "Stores the symbols for a parse tree in a symbol table"
@@ -134,28 +136,36 @@
       (assoc st name symbol array-name array-symbol))
     st))
 
+(add-tap pprint/pprint)
+
 (defmethod store-symbol :event-def
-  [node st]
-  (if (protobuf-node? node)
-    (let [{:keys [:namespace :name]} (meta node)
-          symbol (str namespace "." name)
-          array-name (str name "[]")
-          array-symbol (str namespace "." name "Array")
-          interface-name (last (string/split namespace #"\."))
-          event-module (str "map_" (csk/->snake_case interface-name) "_" (csk/->snake_case name))]
-      (assoc st name symbol array-name {:symbol array-symbol
-                                        :module event-module}))
-    st))
+  [node sub-table]
+  (let [{:keys [:namespace :name]} (meta node)
+        symbol (str namespace "." name)
+        array-name (str name "[]")
+        array-symbol (str namespace "." name "Array")
+        interface-name (last (string/split namespace #"\."))
+        event-module (str "map_" (csk/->snake_case interface-name) "_" (csk/->snake_case name))
+        sub-table (assoc sub-table name symbol array-name array-symbol)]
+    [sub-table {:event-fn event-module
+                :event-fn-output array-symbol}]))
 
 (defmethod store-symbol :interface-def
   [node st]
   (let [{:keys [:name]} (meta node)
         [_ & children] node
-        sub-table (reduce (fn [acc child]
-                            (store-symbol child acc))
-                          {}
-                          children)]
-    (assoc st name sub-table)))
+        [sub-table event-fns] (reduce (fn [[st-acc e-acc] child]
+                                        (let [output (store-symbol child st-acc)]
+                                          (if (not= (count output) 0)
+                                            [(first output) (conj e-acc (second output))]
+                                            [output e-acc])))
+                                      [{} []]
+                                      children)
+        symbol-table (reduce (fn [st-acc {:keys [:event-fn :event-fn-output]}]
+                               (assoc st-acc event-fn event-fn-output))
+                             (assoc st name sub-table)
+                             event-fns)]
+    symbol-table))
 
 (defn store-module-output
   [node st]
@@ -202,16 +212,16 @@
 (defmethod resolve-type :module
   [node symbol-table]
   (let [inputs (as-> node n
-                      (find-child n :module-signature)
-                      (find-child n :module-inputs)
-                      (map #(format-type %) (rest n))
-                      (map (fn [input]
-                             (let [input-symbol (lookup-symbol input symbol-table)
-                                   input-kind "map"
-                                   input-name input]
-                               {:type input-symbol
-                                :kind input-kind
-                                :name input-name})) n))]
+                 (find-child n :module-signature)
+                 (find-child n :module-inputs)
+                 (map #(format-type %) (rest n))
+                 (map (fn [input]
+                        (let [input-symbol (lookup-symbol input symbol-table)
+                              input-kind "map"
+                              input-name input]
+                          {:type input-symbol
+                           :kind input-kind
+                           :name input-name})) n))]
     (push-metadata node {:inputs inputs})))
 
 (defmethod resolve-type :interface-def

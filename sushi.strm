@@ -10,8 +10,12 @@ interface Sushi {
     );
 }
 
+interface SomethingElse {
+    event Transfer(address from, address to, address tokenId);
+}
+
 struct Pools {
-     Sushi.PoolCreated token0;
+     address token0;
      address token1;
 }
 
@@ -21,7 +25,12 @@ mfn pools_created:
         token0: p.token0,
         token1: p.token1,
     };
+    map (p) => Pools {
+        token0: p.token1,
+        token1: p.token0,
+    };
 }
+
 
 struct AnotherOne {
     address djKhalid;
@@ -30,7 +39,7 @@ struct AnotherOne {
 mfn something_else:
 (Sushi.PoolCreated[]) -> AnotherOne[] {
     map (p) => AnotherOne {
-        djKhalid: p.token0,
+        djKhalid: p.token0
     };
 }
 
