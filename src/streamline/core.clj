@@ -4,6 +4,7 @@
    [streamline.ast.metadata :as metadata :refer [get-namespace]]
    [streamline.ast.parser :refer [parser]]
    [streamline.ast.writer :refer [write-ast]]
+   [streamline.templating.rust.helpers :refer [get-all-conversions]]
    [streamline.templating.yaml.helpers :refer [generate-yaml]])
   (:gen-class))
 
@@ -25,5 +26,6 @@
       modules (->> ast
                    (filter #(= (first %) :module)))
       interfaces (->> ast
-                      (filter #(= (first %) :interface-def)))]
-  (generate-yaml ast-ns modules interfaces symbol-table))
+                      (filter #(= (first %) :interface-def)))
+      yaml (generate-yaml ast-ns modules interfaces symbol-table)]
+  (get-all-conversions ast))
