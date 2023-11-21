@@ -1,10 +1,10 @@
 (ns streamline.core
   (:require
-   [clojure.inspector :refer [inspect-tree]]
    [streamline.ast.helpers :refer [generate-abi]]
-   [streamline.ast.metadata :as metadata]
+   [streamline.ast.metadata :as metadata :refer [get-namespace]]
    [streamline.ast.parser :refer [parser]]
-   [streamline.ast.writer :refer [write-ast]])
+   [streamline.ast.writer :refer [write-ast]]
+   [streamline.templating.yaml.helpers :refer [generate-yaml]])
   (:gen-class))
 
 (defn -main
@@ -20,5 +20,10 @@
 
 (let [parse-tree (parser (slurp "sushi.strm"))
       [ast symbol-table] (metadata/add-metadata parse-tree)
-      abi-json (generate-abi ast)]
-  ast)
+      abi-json (generate-abi ast)
+      ast-ns (get-namespace ast)
+      modules (->> ast
+                   (filter #(= (first %) :module)))
+      interfaces (->> ast
+                      (filter #(= (first %) :interface-def)))]
+  (generate-yaml ast-ns modules interfaces symbol-table))

@@ -149,7 +149,8 @@
         sub-table (assoc sub-table name symbol array-name array-symbol)
         parent-name (last (string/split namespace #"\."))]
     [sub-table {:event-fn event-module
-                :event-fn-output (str parent-name "." array-name)}]))
+                :event-fn-output (str parent-name "." array-name)
+                :event-fn-event (str parent-name "." name)}]))
 
 (defmethod store-symbol :interface-def
   [node st]
@@ -222,7 +223,9 @@
                  (find-child n :module-inputs)
                  (map format-type (rest n)) ; get all the types formatted
                  (map (fn [input]
-                        (let [input-symbol (or (get (:event-fns (meta symbol-table)) input) (lookup-symbol input symbol-table))
+                        (let [event-fns (:event-fns (meta symbol-table))
+                              input-symbol (or (get event-fns input) (lookup-symbol input symbol-table))
+                              _ (tap> (get event-fns input))
                               input-kind "map"
                               input-name input]
                           {:type input-symbol
@@ -303,15 +306,6 @@
       (find-child :module-inputs)
       rest))
 
-(defn add-event-fns
-  [parse-tree]
-  (let [modules (filter #(= (first %) :module) parse-tree)
-        module-set (set (map #(get % 2) modules))
-        module-input-set (set (flatten (map get-module-inputs modules)))
-        ; any inputs that are not in the module set are outputs of event-fns
-        event-fns (difference module-input-set module-set)]
-    event-fns))
-
 ;;;========================================
 ;;; PUBLIC METADATA HELPERS
 ;;; =======================================
@@ -326,6 +320,4 @@
         [parse-tree symbol-table] (store-module-outputs parse-tree symbol-table)
         ; update the parse tree with the type and field type metadata
         parse-tree (map #(resolve-type % symbol-table) parse-tree)]
-        ; create a set of all of the module names
-        ;event-fns (add-event-fns parse-tree)
     [parse-tree symbol-table]))
