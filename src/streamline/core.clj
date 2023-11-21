@@ -21,4 +21,4 @@
 (let [parse-tree (parser (slurp "sushi.strm"))
       [ast symbol-table] (metadata/add-metadata parse-tree)
       abi-json (generate-abi ast)]
-  symbol-table)
+  ast)

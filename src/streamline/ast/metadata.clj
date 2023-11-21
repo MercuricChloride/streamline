@@ -166,8 +166,12 @@
                                (assoc st-acc event-fn event-fn-output))
                              (assoc st name sub-table)
                              event-fns)
+        event-fns (reduce (fn [acc {:keys [:event-fn :event-fn-output]}]
+                            (assoc acc event-fn-output event-fn)) ;store from output->name so we can lookup by output
+                          {}
+                          event-fns)
         st-meta-fns (:event-fns (meta st))]
-    (push-metadata symbol-table {:event-fns (concat (map :event-fn event-fns) st-meta-fns)})))
+    (push-metadata symbol-table {:event-fns (merge event-fns st-meta-fns)})))
 
 (defn store-module-output
   [node st]
@@ -218,7 +222,7 @@
                  (find-child n :module-inputs)
                  (map format-type (rest n)) ; get all the types formatted
                  (map (fn [input]
-                        (let [input-symbol (lookup-symbol input symbol-table)
+                        (let [input-symbol (or (get (:event-fns (meta symbol-table)) input) (lookup-symbol input symbol-table))
                               input-kind "map"
                               input-name input]
                           {:type input-symbol
