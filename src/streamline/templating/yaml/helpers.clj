@@ -37,7 +37,7 @@
 (defn generate-yaml-protobufs
   [namespace]
   {:files [(str namespace ".proto")]
-   :import-paths ["/tmp/streamline/proto/"]})
+   :importPaths ["/tmp/streamline/proto/"]})
 
 (defn generate-yaml-package
   [namespace]
