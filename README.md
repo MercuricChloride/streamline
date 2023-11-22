@@ -2,6 +2,8 @@
 
 A delightfully simple declarative, data driven programming language built for the EVM, specifically for developing and using substreams in a more intuitive and powerful manner.
 
+Check out the docs [HERE](doc/intro.md) to get started!
+
 ## Usage
 
 #### NOTE The startup of the JVM is slow. I will release a standalone built for native hardware. But its not the end of the world.
