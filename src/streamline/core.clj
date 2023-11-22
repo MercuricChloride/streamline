@@ -7,7 +7,7 @@
    [streamline.ast.metadata :as metadata :refer [get-namespace]]
    [streamline.ast.parser :refer [parser]]
    [streamline.templating.protobufs.helpers :refer [create-protobuf-defs]]
-   [streamline.templating.rust.functions :refer [create-mfn]]
+   [streamline.templating.rust.functions :refer [create-module]]
    [streamline.templating.rust.helpers :refer [get-all-conversions]]
    [streamline.templating.yaml.helpers :refer [generate-yaml]])
   (:gen-class))
@@ -56,16 +56,16 @@
 (let [[ast symbol-table] (metadata/add-metadata erc721)
       abis (generate-abi ast)
       ;; _ (write-abis abis)
-      ;; ast-ns (get-namespace ast)
-      ;; modules (->> ast
-      ;;              (filter #(= (first %) :module)))
-      ;; interfaces (->> ast
-      ;;                 (filter #(= (first %) :interface-def)))
-      ;; yaml (generate-yaml ast-ns modules interfaces symbol-table)
-      ;; proto-defs (create-protobuf-defs ast)
-      ;; conversions (get-all-conversions ast symbol-table)
-      ;; fns (as-> modules m
-      ;;                (map #(create-mfn % symbol-table) m)
-      ;;                (string/join "\n" m))]
-                     ]
-  abis)
+      ast-ns (get-namespace ast)
+      modules (->> ast
+                   (filter #(= (first %) :module)))
+      interfaces (->> ast
+                      (filter #(= (first %) :interface-def)))
+      yaml (generate-yaml ast-ns modules interfaces symbol-table)
+      proto-defs (create-protobuf-defs ast)
+      conversions (get-all-conversions ast symbol-table)
+      fns  (as-> modules m
+                       (map #(create-module % symbol-table) m)
+                       (string/join "\n" m))
+      ]
+  fns)

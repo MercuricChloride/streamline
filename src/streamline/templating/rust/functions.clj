@@ -47,9 +47,13 @@
         args (string/join ", " (map #(->expr % st) args))]
     (str function "(" args ")")))
 
-;; (defmethod ->expr :binary-expression
-;;   [input]
-;;   (ast/new-Expression {:expression {:binary-expression {:op input}}}))
+(defmethod ->expr :binary-op
+  [input _]
+  (second input))
+
+(defmethod ->expr :binary-expression
+  [[_ left op right] st]
+  (str (->expr left st) " " (->expr op st) " " (->expr right st)))
 
 (defmethod ->expr :number
   [input st]
@@ -95,14 +99,14 @@
         inputs (format-fn-inputs inputs)
         body (->expr expression st)]
     (->> (pg/render-resource
-         "templates/rust/functions/hof.mustache"
-         {:parent parent-fn
-          :inputs inputs
-          :body body})
-        (str "=> "))))
+          "templates/rust/functions/hof.mustache"
+          {:parent parent-fn
+           :inputs inputs
+           :body body})
+         (str "=> "))))
 
 (defn create-mfn
-  "Converts a module function into a rust function"
+  "Converts a map module function into a rust function"
   [module st]
   (let [[_ _kind _name _signature & pipeline] module
         m (meta module)
@@ -122,3 +126,33 @@
       :inputs inputs
       :output output-type
       :body body})))
+
+(defn create-sfn
+  "Converts a store module function into a rust function"
+  [module st]
+  (let [[_ _kind _name _signature & pipeline] module
+        m (meta module)
+        name (->snake-case (:name m))
+        inputs (as-> m m
+                 (:inputs m)
+                 (map :name m)
+                 (map #(lookup-symbol % st) m)
+                 (map #(format-rust-path %) m)
+                 (map-indexed (fn [i path] (str "input_" i ": " path)) m)
+                 (string/join "," m))
+        output-type (format-rust-path (:output-type m))
+        body (string/join "\n" (map #(->function % st) pipeline))]
+    (pg/render-resource
+     "templates/rust/functions/mfn.mustache"
+     {:name name
+      :inputs inputs
+      :output output-type
+      :body body})))
+
+(defn create-module
+  [module st]
+  (let [[_ kind & _] module]
+    (case kind
+      "mfn" (create-mfn module st)
+      "sfn" nil) ;TODO
+    ))

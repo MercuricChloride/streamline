@@ -13,11 +13,8 @@ struct Burn {
        uint256 token;
 }
 
-sfn somethin:
-(Erc721.Transfer[]) -> Burn[] {}
-
 mfn burns:
-(somethin) -> Burn[] {
+(Erc721.Transfer[]) -> Burn[] {
     filter (transfer) => transfer.to != address(0);
     map (transfer) => Burn {
                         burner: transfer.from,
