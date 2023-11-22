@@ -226,3 +226,138 @@ Now lets look at how we would model this problem using streamline!
     So here, we just convert each transfer in our list, which are all burns thanks to the filter, into a new data structure we defined earlier.
     
     Now the output of our function is a list of NftBurn, like we described in the declaration.
+    
+    If this doesn't make sense yet, just keep going. We will walk through some more examples and give some more explanations of the concepts! 
+
+# Modules Explained
+
+So now that you, valued reader, are a data driven programming expert. Let's go back to Substreams for a second.
+
+So we know that Substreams take block data in, and output the data we want.
+
+Does this sound familiar to anything we just covered? It should!
+
+A Substream can be thought of a function from `(Block) -> OurData`.
+
+The way that we get to `OurData` is with "modules". Modules are just like functions, in that they operate on their inputs. Modules can feed their data into other modules.
+
+The thing that makes modules different than functions, is that a module eventually has to get data from a block. We can't have modules that aren't connected to something that isn't connected to a block.
+
+So to summarize, every module is a step that is actually used in the transformation from a block -> our data. Whereas a function is simply an abstract description of how to go from X -> Y. They are similar, but their usage is slightly different.
+
+Let's visualize what I mean here:
+
+```mermaid
+graph LR;
+    block["An Ethereum Block 📤 "]
+    module_a["Module A: Gets Transfers"]
+    module_b["Module B: Filters Burns"]
+    block-->|Feeds into|module_a;
+    module_a-->|Feeds into|module_b;
+```
+
+## Module Flavors
+
+Modules come in two flavors. Maps and stores.
+
+### Syntax of modules
+
+Module declaration is very similar to function declaration. The difference is in the inputs.
+
+Rather than declaring the input data types like we do when declaring functions. 
+
+When we define a module, we specify the names of the modules that are fed into this module as inputs.
+
+The output is still just a normal type identifier.
+
+### Map Modules AKA: `mfn`
+
+These modules are basically pure functions.
+
+They output some data type, which is created from their input data. The declaration is similar to function declaration, with the difference being we use `mfn`, rather than `fn`. The m prefix says this function is a map module.
+
+```
+// A simple module
+
+mfn pools_created:
+(Block) -> PoolCreated[]{
+...
+}
+
+// A module that takes another module as input
+mfn do_something_w_pools:
+(pools_created) -> SomethingElse[] {
+...
+}
+
+```
+
+
+### Store Modules AKA: `sfn`
+
+Store modules are extremely powerful. But they require more consideration than map modules.
+
+We can declare a store module with the `sfn` keyword. Which says this function is a store module. 
+
+A store module just a key value store. Very similar to a `mapping` in solidity.
+
+However unlike solidity mappings, store modules allow us to specify how to handle key collisions. This is called the update policy of the module. Additionally, we can only access the data in a store module in later modules. IE A module cannot read from itself, however we can mimic this with the update policity of the module.
+
+There are 6 update policies available to us:
+
+1. `set`
+   
+   This policy, will overwrite the value if something is present. Just like a mapping in solidity.
+   
+2. `setNotExists`
+
+   This policy, will only store the value, if nothing is present for that key. 
+
+3. `add`
+
+   This policy will sum the stored value and the value we are storing.
+   _THIS IS ONLY AVAILABLE FOR NUMERIC TYPES._
+
+4. `min`
+
+   This policy will store the value only if it is less than the stored value.
+   _THIS IS ONLY AVAILABLE FOR NUMERIC TYPES._
+
+5. `max`
+
+   This policy will store the value only if it is greater than the stored value.
+   _THIS IS ONLY AVAILABLE FOR NUMERIC TYPES._
+
+6. `append`
+
+    This concatenates the stored value and the value we are setting.
+   _THIS IS ONLY AVAILABLE FOR BYTES AND STRINGS._
+   
+Within a store module, we have access to two special functions:
+store && delete. TODO ADD DOCS FOR THESE
+
+Here is how we use them:
+
+```
+// a simple store
+sfn max_token_id:
+(Transfer[]) -> Max(uint256) {
+    map (transfer) => store("big_token", transfer.tokenId);
+}
+
+// reading from that store
+mfn use_max_token_id:
+(max_token_id) -> BiggestToken {
+    (token_store) => BiggestToken {
+                            id: token_store["big_token"],
+                     };
+}
+
+// tracking owners of tokens with a store
+sfn token_owners:
+(Transfer[]) -> Set(address) {
+    map (transfer) => store(transfer.tokenId, transfer.to);
+}
+```
+
+
