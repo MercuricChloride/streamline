@@ -1,4 +1,4 @@
-# Introduction to streamline
+# Introduction to Streamline
 Hey there!
 
 Welcome to the Streamline docs!

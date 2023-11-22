@@ -26,7 +26,7 @@ Do you need some complex aggregation of data? Sure.
 
 These kinds of tools shine with complex tasks as they make the task much more practical than their simpler counterparts
 
-However my general experience with these tools is that they are technically powerful. But they generally feel unpolished. They offer little to no guardrails or tools to prevent silly mistakes and  tame complexity when a project grows.
+However my general experience with these tools is that they are technically powerful. They offer little to no guardrails or tools to prevent silly mistakes and tame complexity when a project grows.
 
 This leads to cases where a developer may be writing syntaxically valid code, that later crashes at runtime after syncing for 10 minutes or worse, silently introduces hard to find bugs in your data. All because they forgot about an interaction a block of code had in an unrelated file.
 
