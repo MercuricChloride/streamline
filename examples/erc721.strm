@@ -8,5 +8,3 @@ interface ERC721 {
 
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 }
-
-// And now magically we have a substream!

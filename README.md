@@ -1,6 +1,8 @@
 # Streamline 🏊 
 
-A delightfully simple declarative, data driven programming language built for the EVM, specifically for developing and using substreams in a more intuitive and powerful manner.
+_THIS LANGUAGE IS IN DEVELOPMENT. THINGS MIGHT CHANGE OR BREAK UNTIL WE CUT A STABLE RELEASE_
+
+A delightfully simple declarative, data driven programming language built for the EVM, specifically for developing and using Substreams in a more intuitive and powerful manner.
 
 Check out the docs [HERE](doc/intro.md) to get started!
 
