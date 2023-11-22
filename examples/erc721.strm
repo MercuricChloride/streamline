@@ -1,0 +1,12 @@
+stream minimal_erc721;
+
+// Define our interface
+interface ERC721 {
+    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+
+    event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
+
+    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+}
+
+// And now magically we have a substream!

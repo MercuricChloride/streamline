@@ -3,6 +3,8 @@ Hey there!
 
 Welcome to the Streamline docs!
 
+If you don't care about explanations and just want to see some code, click [HERE](./grow-a-stream.md)
+
 Streamline is a programming language built by your friends at Spyglass Labs with the fundamental goal of empowering it's users to interact with and use blockchain data in new and interesting ways that would have otherwise been highly time consuming, highly impractical, or just technically impossible.
 
 Streamline is designed from the ground up to be the simplest and most expressive way to interact with blockchain data. It is built with first-class support for Ethereum concepts. So any solidity developer will feel right at home when working with it.
