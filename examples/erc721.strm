@@ -13,11 +13,16 @@ struct Burn {
        uint256 token;
 }
 
-mfn burns:
-(Erc721.Transfer[]) -> Burn[] {
-    filter (transfer) => transfer.to != address(0);
-    map (transfer) => Burn {
+convert:
+Erc721.Transfer -> Burn {
+    (transfer) => Burn {
                         burner: transfer.from,
                         token: transfer.tokenId,
                       };
+}
+
+mfn burns:
+(Erc721.Transfer[]) -> Burn[] {
+    filter (transfer) => transfer.to != address(0);
+    map (transfer) => convert(transfer, Burn);
 }
