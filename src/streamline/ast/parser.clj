@@ -21,7 +21,7 @@
 
     conversion = <'convert:'> type  <'->'> type <'{'> pipeline <'}'>
 
-    <expression> = (number / string / struct-expression / array-expression / function-call / binary-expression / field-access / expr-ident )
+    <expression> = (number / string / address/ struct-expression / array-expression / function-call / binary-expression / field-access / expr-ident )
 
     struct-expression = identifier <'{'> struct-expression-field* <'}'>
     struct-expression-field = identifier <':'> expression <','>?

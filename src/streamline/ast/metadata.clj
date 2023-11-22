@@ -64,7 +64,6 @@
 ;;; SYMBOL TABLE HELPERS
 ;;; =======================================
 
-
 (defn push-metadata
   "Pushes metadata to a node"
   [node metadata-map]
@@ -110,8 +109,6 @@
       (assoc st name symbol array-name array-symbol))
     st))
 
-(add-tap pprint/pprint)
-
 (defmethod store-symbol :event-def
   [node sub-table]
   (let [{:keys [:namespace :name]} (meta node)
@@ -138,7 +135,8 @@
                                       [{} []]
                                       children)
         symbol-table (reduce (fn [st-acc {:keys [:event-fn :event-fn-output]}]
-                               (assoc st-acc event-fn event-fn-output))
+                               (assoc st-acc event-fn {:output event-fn-output
+                                                       :module-kind "mfn"}))
                              (assoc st name sub-table)
                              event-fns)
         event-fns (reduce (fn [acc {:keys [:event-fn :event-fn-output]}]
@@ -151,11 +149,13 @@
 (defn store-module-output
   [node st]
   (if (= (first node) :module)
-    (let [[_ _ module-name] node
+    (let [[_ kind module-name] node
           signature-output (get-module-output-type node st)
           node (push-metadata node {:output-type signature-output})
-          node (push-metadata node {:name module-name})]
-      [node (assoc st module-name signature-output)])
+          node (push-metadata node {:name module-name})
+          node (push-metadata node {:module-kind kind})]
+      [node (assoc st module-name {:output signature-output
+                                   :module-kind kind})])
     [node st]))
 
 (defn store-module-outputs
@@ -198,12 +198,13 @@
                  (map format-type (rest n)) ; get all the types formatted
                  (map (fn [input]
                         (let [event-fns (:event-fns (meta symbol-table))
-                              input-symbol (or (get event-fns input) (lookup-symbol input symbol-table))
-                              input-kind "map"
-                              input-name input]
+                              [input-symbol input-kind] (if-let [event-fn (get event-fns input)]
+                                                          [event-fn "mfn"]
+                                                          (let [lookup (lookup-symbol input symbol-table)]
+                                                            [(:output lookup) (:module-kind lookup)]))]
                           {:type input-symbol
                            :kind input-kind
-                           :name input-name})) n))]
+                           :name input})) n))]
     (push-metadata node {:inputs inputs})))
 
 (defmethod resolve-type :interface-def

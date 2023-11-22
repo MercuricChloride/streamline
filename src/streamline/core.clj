@@ -12,9 +12,7 @@
    [streamline.templating.yaml.helpers :refer [generate-yaml]])
   (:gen-class))
 
-(def parse-tree (parser (slurp "streamline.strm")))
-
-(def sushi (parser (slurp "sushi.strm")))
+(def erc721 (parser (slurp "examples/erc721.strm")))
 
 (defn write-to-path
   [path content]
@@ -55,20 +53,19 @@
   (let [path (first args)]
     (bundle-file path)))
 
-(let [input-file (slurp "sushi.strm")
-      parse-tree (parser input-file)
-      [ast symbol-table] (metadata/add-metadata parse-tree)
+(let [[ast symbol-table] (metadata/add-metadata erc721)
       abis (generate-abi ast)
-      _ (write-abis abis)
-      ast-ns (get-namespace ast)
-      modules (->> ast
-                   (filter #(= (first %) :module)))
-      interfaces (->> ast
-                      (filter #(= (first %) :interface-def)))
-      yaml (generate-yaml ast-ns modules interfaces symbol-table)
-      proto-defs (create-protobuf-defs ast)
-      conversions (get-all-conversions ast symbol-table)
-      fns (as-> modules m
-                     (map #(create-mfn % symbol-table) m)
-                     (string/join "\n" m))]
-  fns)
+      ;; _ (write-abis abis)
+      ;; ast-ns (get-namespace ast)
+      ;; modules (->> ast
+      ;;              (filter #(= (first %) :module)))
+      ;; interfaces (->> ast
+      ;;                 (filter #(= (first %) :interface-def)))
+      ;; yaml (generate-yaml ast-ns modules interfaces symbol-table)
+      ;; proto-defs (create-protobuf-defs ast)
+      ;; conversions (get-all-conversions ast symbol-table)
+      ;; fns (as-> modules m
+      ;;                (map #(create-mfn % symbol-table) m)
+      ;;                (string/join "\n" m))]
+                     ]
+  abis)

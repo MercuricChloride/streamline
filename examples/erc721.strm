@@ -1,10 +1,26 @@
 stream minimal_erc721;
 
-// Define our interface
-interface ERC721 {
+interface Erc721 {
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
 
     event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
 
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+}
+
+struct Burn {
+       address burner;
+       uint256 token;
+}
+
+sfn somethin:
+(Erc721.Transfer[]) -> Burn[] {}
+
+mfn burns:
+(somethin) -> Burn[] {
+    filter (transfer) => transfer.to != address(0);
+    map (transfer) => Burn {
+                        burner: transfer.from,
+                        token: transfer.tokenId,
+                      };
 }
