@@ -47,6 +47,13 @@
           resolved-symbol
           (recur (rest parts) resolved-symbol))))))
 
+(defn lookup-event-array
+  "Returns the map module name for a event array being used as a module input.
+  IE `Erc721.Transfer[]` should resolve to `map_erc721_transfer`"
+  [event-array symbol-table]
+  (let [event-fns (:event-fns (meta symbol-table))]
+    (get event-fns event-array)))
+
 (defn ->proto-symbol
   [symbol symbol-table]
   (format-rust-path (lookup-symbol symbol symbol-table)))

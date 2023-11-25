@@ -3,7 +3,7 @@
 
 (def parser
   (insta/parser
-   "<S> = file-meta import-statement* (module / struct-def / interface-def / contract-instance / conversion)*
+   "<S> = file-meta import-statement* (module / struct-def / interface-def / fn-def / contract-instance / conversion)*
 
     file-meta = file-type identifier <';'>
     <file-type> = 'stream' / 'sink'
@@ -15,22 +15,18 @@
     lambda = <'('> module-inputs <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
     hof = parent-function <'('> module-inputs <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
     <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
-    <pipeline> = (lambda / hof)*
+    pipeline = (lambda / hof)*
 
-    contract-instance = type identifier <'='> type <'('> address <')'> <';'>
+    conversion = <'convert:'> type <'->'> type <'{'> pipeline <'}'>
 
-    conversion = <'convert:'> type  <'->'> type <'{'> pipeline <'}'>
-
-    <expression> = (number / string / address/ struct-expression / array-expression / function-call / binary-expression / field-access / expr-ident )
+    <expression> = (number / string / address/ struct-expression / array-expression / function-call / binary-expression / field-access / identifier)
 
     struct-expression = identifier <'{'> struct-expression-field* <'}'>
     struct-expression-field = identifier <':'> expression <','>?
 
     array-expression = <'['> expression* <']'>
 
-    expr-ident = identifier
-
-    function-call = expression <'('> expression* <')'>
+    function-call = identifier <'('> expression* <')'>
 
     binary-op = ('+' / '-' / '*' / '/' / '==' / '!=' / '<' / '>' / '<=' / '>=' / '&&' / '||' / '!')
     binary-expression = expression binary-op expression
@@ -41,14 +37,16 @@
     <module-type> = 'mfn' | 'sfn'
     module-signature = map-module-signature / store-module-signature
     <map-module-signature> = <'('> module-inputs <')'> <'->'> module-output
-    <store-module-signature> = <'('> (identifier array?)* <')'> <'->'> store-update-policy
-    <store-update-policy> = ('Set' / 'SetNotExists' / 'Add' / 'Min' / 'Max') <'('> (identifier array?) <')'>
-
-    fn = <'fn'> identifier <':'> fn-signature <'{'> pipeline <'}'>
-    fn-signature = <'('> module-inputs <')'> <'->'> module-output
-
-    module-inputs = type*
+    <store-module-signature> = <'('> module-inputs <')'> <'->'> store-update-policy
+    <store-update-policy> = ('Set' / 'SetNotExists' / 'Add' / 'Min' / 'Max') <'('> (type) <')'>
+    module-inputs = ( event-array / identifier)*
     module-output = type
+
+    fn-def = <'fn'> identifier <':'> fn-signature <'{'> pipeline <'}'>
+    fn-signature = <'('> fn-inputs <')'> <'->'> type
+    fn-inputs = type*
+
+    contract-instance = type identifier <'='> type <'('> address <')'> <';'>
 
     struct-def = <'struct'> identifier <'{'> (struct-field <';'>)* <'}'>
     struct-field = type identifier ('[' ']')?
@@ -77,6 +75,7 @@
     <identifier> = #'[a-zA-Z$_][a-zA-Z0-9$_]*'
     <array-identifier> = #'[a-zA-Z$_][a-zA-Z0-9$_]*' '[]'
     <fully-qualified-identifier> = identifier (<'.'> (array-identifier / identifier))+
+    event-array = identifier <'.'> identifier '[]'
     type = (fully-qualified-identifier / array-identifier / identifier)
     number = #'[0-9]+'
     string = <'\"'> #'[^\"\\n]*' <'\"'>
