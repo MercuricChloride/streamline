@@ -33,6 +33,7 @@
       (insta/transform
        {:struct-def (fn [name & fields]
                       (build-proto-message name (build-proto-fields fields) :build-array))
+
         :struct-field (fn [type name]
                         (let [type (lookup-symbol (format-type type) symbol-table)
                               repeated? (if (string/ends-with? type "Array") true false)]
@@ -62,4 +63,5 @@
                                       :repeated repeated?
                                       :indexed true}))} t)
       (string/join "\n" t)
-      (string/replace t (str namespace ".") ""))))
+      (string/replace t (str namespace ".") "")
+      (pg/render-resource "templates/proto/protofile.mustache" {:namespace namespace :messages t}))))
