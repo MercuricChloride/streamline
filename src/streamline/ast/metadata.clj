@@ -286,8 +286,8 @@
 ;;;========================================
 ;;; PUBLIC METADATA HELPERS
 ;;; =======================================
-(defn add-metadata
-  "Adds all of the metadata to the parse tree"
+(defn get-symbol-table
+  "Returns the symbol table for the parse tree"
   [parse-tree]
         ; create the initial parse tree
   (let [parse-tree (add-namespaces parse-tree)
@@ -297,4 +297,4 @@
         [parse-tree symbol-table] (store-module-outputs parse-tree symbol-table)
         ; update the parse tree with the type and field type metadata
         parse-tree (map #(resolve-type % symbol-table) parse-tree)]
-    [parse-tree symbol-table]))
+    symbol-table))

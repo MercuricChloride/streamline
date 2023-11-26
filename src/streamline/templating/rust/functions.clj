@@ -156,3 +156,23 @@
       "mfn" (create-mfn module st)
       "sfn" nil) ;TODO
     ))
+
+(defn create-fn
+  [fn-def st]
+  (let [[_ _name _signature & pipeline] fn-def
+        m (meta fn-def)
+        name (->snake-case (:name m))
+        inputs (as-> m m
+                 (map #(lookup-symbol % st) m)
+                 (map #(format-rust-path %) m)
+                 (map-indexed (fn [i path] (str "input_" i ": " path)) m)
+                 (string/join "," m))
+        output-type (format-rust-path (:output-type m))
+        body (string/join "\n" (map #(->function % st) pipeline))]
+    (pg/render-resource
+     "templates/rust/functions/fn.mustache"
+     {:name name
+      :inputs inputs
+      :output output-type
+      :body body}))
+  )

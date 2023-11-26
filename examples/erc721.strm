@@ -8,9 +8,22 @@ interface Erc721 {
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 }
 
+fn double_num:
+(uint) -> uint {
+       (a) => a * 2;
+       (a) => a * 2;
+       (a) => a * 2;
+}
+
+struct SomethingElse {
+       address foo;
+}
+
 struct Burn {
        address burner;
        uint256 token;
+       SomethingElse bar;
+       Erc721.Transfer foo;
 }
 
 convert:
@@ -25,4 +38,9 @@ mfn burns:
 (Erc721.Transfer[]) -> Burn[] {
     filter (transfer) => transfer.to != address(0);
     map (transfer) => convert(transfer, Burn);
+}
+
+mfn something_else:
+(burns) -> Burn[] {
+        (burns) => burns;
 }

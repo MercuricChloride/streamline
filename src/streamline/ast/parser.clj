@@ -12,20 +12,22 @@
     <normal-import> = <'import'> string <';'>
     <import-as> = <'import'> string <'as'> identifier <';'>
 
-    lambda = <'('> module-inputs <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
-    hof = parent-function <'('> module-inputs <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
+    lambda = <'('> fn-args <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
+    hof = parent-function lambda
+    fn-args = identifier*
     <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
     pipeline = (lambda / hof)*
 
     conversion = <'convert:'> type <'->'> type <'{'> pipeline <'}'>
 
-    <expression> = (number / string / address/ struct-expression / array-expression / function-call / binary-expression / field-access / identifier)
+    <expression> = (number / string / address/ struct-expression / array-expression / convert / function-call / binary-expression / field-access / identifier)
 
     struct-expression = identifier <'{'> struct-expression-field* <'}'>
     struct-expression-field = identifier <':'> expression <','>?
 
     array-expression = <'['> expression* <']'>
 
+    convert = <'convert'> <'('> identifier type <')'>
     function-call = identifier <'('> expression* <')'>
 
     binary-op = ('+' / '-' / '*' / '/' / '==' / '!=' / '<' / '>' / '<=' / '>=' / '&&' / '||' / '!')

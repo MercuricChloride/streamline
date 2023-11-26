@@ -1,10 +1,11 @@
 (ns streamline.ast.helpers
-  (:require [clojure.data.json :as json]
-            [clojure.string :as string]))
+  (:require
+   [clojure.data.json :as json]
+   [clojure.string :as string]
+   [instaparse.core :as insta]))
 
 (defn parse-int [s]
   (Integer/parseInt (re-find #"\A-?\d+" s)))
-
 
 (defn eval-bool [s]
   (cond
@@ -14,11 +15,11 @@
 
 (defn format-type
   "Formats a type node into a string"
-  [type]
-  (let [type (rest type)]
-    (if (= (last type) "[]")
-      (str (string/join "." (butlast type)) "[]")
-      (str (string/join "." type)))))
+  ([type]
+   (let [type (if (= (first type) :type) (rest type) type)]
+     (if (= (last type) "[]")
+       (str (string/join "." (butlast type)) "[]")
+       (str (string/join "." type))))))
 
 (defn node-type
   "Returns the type of a node, or nil if it is a string or keyword"
@@ -44,13 +45,8 @@
 ;;                          :to to
 ;;                          :pipeline pipeline})))
 
-(defn format-types
-  [types]
-  (map format-type types))
-
-
 (defmulti ->abi
-  "Converts a parse tree node for a function or event, into it's ABI JSON representation"
+  "converts a parse tree node for a function or event, into it's abi json representation"
   first)
 
 (defmethod ->abi :default
@@ -70,45 +66,23 @@
 (defmethod ->abi :function-wo-return
   [input]
   (let [[_ name [_ & params]] input]
-     {:type "function"
-      :name name
-      :inputs (into [] (map ->abi params))
-      :outputs []
-      :state-mutability "nonpayable"}))
+    {:type "function"
+     :name name
+     :inputs (into [] (map ->abi params))
+     :outputs []
+     :state-mutability "nonpayable"}))
 
 (defmethod ->abi :function-param
   [input]
   (let [[_ type name] input]
-     {:type (format-type type)
-      :name name}))
+    {:type (format-type type)
+     :name name}))
 
 (defmethod ->abi :unnamed-return
   [input]
   (let [[_ type] input]
-     {:type (format-type type)
-      :name ""}))
-
-(defmethod ->abi :event-def
-  [input]
-  (let [[_ name & params] input]
-     {:type "event"
-      :name name
-      :inputs (into [] (map ->abi params))
-      :anonymous false}))
-
-(defmethod ->abi :indexed-event-param
-  [input]
-  (let [[_ type name] input]
-     {:type (format-type type)
-      :name name
-      :indexed true}))
-
-(defmethod ->abi :non-indexed-event-param
-  [input]
-  (let [[_ type name] input]
-     {:type (format-type type)
-      :name name
-      :indexed false}))
+    {:type (format-type type)
+     :name ""}))
 
 (defn function-def? [input]
   (or (= (first input) :function-w-return)
@@ -131,7 +105,26 @@
 
 (defn generate-abi
   "Generates an ABI JSON string from a parse tree"
-  [parse-tree]
+  [parse-tree symbol-table]
   (->> parse-tree
-       (map ->abi)
-       (filter #(not= % nil))))
+       (filter #(= (first %) :interface-def))
+       (insta/transform
+        {:interface-def (fn [name & events]
+                          {:name name
+                           :events events
+                           :abi-json (json/write-str events)})
+         :event-def (fn [name & params]
+                      {:type "event"
+                       :name name
+                       :inputs params
+                       :anonymous false})
+         :indexed-event-param (fn [type name]
+                                {:type (format-type type)
+                                 :name name
+                                 :indexed true})
+         :non-indexed-event-param (fn [type name]
+                                    {:type (format-type type)
+                                     :name name
+                                     :indexed true})
+})
+       ))

@@ -75,5 +75,4 @@
   [parse-tree symbol-table]
   (->> parse-tree
        (reduce (fn [acc node]
-                 (concat acc (get-conversions node symbol-table))) [])
-       ))
+                 (concat acc (get-conversions node symbol-table))) [])))
