@@ -4,7 +4,7 @@
    [clojure.string :as string]
    [streamline.ast.helpers :refer [generate-abi]]
    [streamline.ast.metadata :as metadata]
-   [streamline.ast.parser :refer [parser try-parse]]
+   [streamline.ast.parser :refer [try-parse]]
    [streamline.templating.protobufs.helpers :refer [build-protobufs]]
    [streamline.templating.rust.functions :refer [create-functions]]
    [streamline.templating.rust.helpers :refer [all-conversions]]

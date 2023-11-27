@@ -6,8 +6,7 @@
    [streamline.ast.helpers :refer [format-type pipeline-transforms]]
    [streamline.ast.metadata :refer [get-namespace]]
    [streamline.templating.helpers :refer [->snake-case format-rust-path
-                                          lookup-symbol]]
-   [streamline.templating.rust.functions :refer [->function]]))
+                                          lookup-symbol]]))
 
 (defn array-type-conversion
   [type]
@@ -20,50 +19,6 @@
 (defn event->event
   [event-name type-name fields]
   (pg/render-resource "templates/rust/traits/event-to-event.mustache" {:event-name event-name :type-name type-name :fields fields}))
-
-(event->event (format-rust-path "contracts.erc721.Transfer") "Transfer", ["from", "to"])
-
-(defmulti get-conversions (fn [input & _] (first input)))
-
-(defmethod get-conversions :default
-  [input _]
-  nil)
-
-(defmethod get-conversions :interface-def
-  [input st]
-  (let [[_ interface-name & children] input
-        {:keys [:namespace :name]} (meta input)
-        input-path (str namespace "." name)
-        input-type (format-rust-path input-path)
-        event-fns (reduce (fn [acc event]
-                            (concat acc (get-conversions event st interface-name))) [] children)]
-    event-fns))
-
-(defmethod get-conversions :struct-def
-  [input _]
-  (let [{:keys [:namespace :name]} (meta input)
-        input-path (str namespace "." name)
-        input-type (format-rust-path input-path)]
-    [(array-type-conversion input-type)]))
-
-(defmethod get-conversions :conversion
-  [input symbol-table]
-  (let [[_ from to & pipeline] input
-        from (format-type from)
-        ; NOTE the `to` type is a literal type, not a binding.
-        ; so we need to look up the path for it.
-        to (-> to
-               format-type
-               (lookup-symbol symbol-table)
-               format-rust-path)
-        pipeline (string/join "\n" (map #(->function % symbol-table) pipeline))]
-    [(pg/render-resource "templates/rust/traits/conversion.mustache" {:from from :to to :pipeline pipeline})]))
-
-(defn get-all-conversions
-  [parse-tree symbol-table]
-  (->> parse-tree
-       (reduce (fn [acc node]
-                 (concat acc (get-conversions node symbol-table))) [])))
 
 (defn event-conversions
   "Creates the following conversions for an event:
