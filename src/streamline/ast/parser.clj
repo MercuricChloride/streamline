@@ -100,10 +100,13 @@
    :boolean edn/read-string
    :binary-op edn/read-string
    :expr-ident edn/read-string
-   :binary-expression (fn [left op right]
-                        [op left right])
-   :function-call (fn [name & args]
-                    [(symbol name) args])
+   :binary-expression str
+
+
+   ;; :binary-expression (fn [left op right]
+   ;;                      [op left right])
+   ;; :function-call (fn [name & args]
+   ;;                  [(symbol name) args])
    })
 
 (defn try-parse

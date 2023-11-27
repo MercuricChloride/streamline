@@ -2,7 +2,38 @@
   (:require
    [clojure.data.json :as json]
    [clojure.string :as string]
-   [instaparse.core :as insta]))
+   [instaparse.core :as insta]
+   [pogonos.core :as pg]))
+
+(defn make-hof
+  [parent inputs body]
+  (pg/render-resource
+   "templates/rust/functions/hof.mustache"
+   {:parent parent
+    :inputs inputs
+    :body body}))
+
+(defn make-lambda
+  [inputs body]
+  (pg/render-resource
+   "templates/rust/functions/lambda.mustache"
+   {:inputs inputs
+    :body body}))
+
+(def pipeline-transforms
+  {:pipeline (fn [& steps] (string/join "\n" steps))
+
+   :hof (fn [parent {:keys [:inputs :body]}]
+          (make-hof parent inputs body))
+
+   :callback (fn [args expr]
+               {:inputs args
+                :body expr})
+
+   :lambda (fn [args expr]
+             (make-lambda args expr))
+   :fn-args (fn [& names]
+              (string/join "," names))})
 
 (defn parse-int [s]
   (Integer/parseInt (re-find #"\A-?\d+" s)))
@@ -125,5 +156,4 @@
          :non-indexed-event-param (fn [type name]
                                     {:type (format-type type)
                                      :name name
-                                     :indexed true})})
-       ))
+                                     :indexed true})})))

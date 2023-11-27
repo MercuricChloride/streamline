@@ -28,7 +28,6 @@
           abi (:abi-json abi)]
       (write-to-path path abi))))
 
-
 (defn bundle-file
   [path]
   (let [parse-tree (try-parse path)
@@ -38,7 +37,9 @@
         abi-json (generate-abi parse-tree symbol-table)
         yaml (generate-yaml parse-tree symbol-table)
         protobuf (build-protobufs parse-tree symbol-table)
-        conversions (all-conversions parse-tree symbol-table)]
+        fns (concat []
+                       (all-conversions parse-tree symbol-table)
+                       (create-functions parse-tree symbol-table))]
     ; write the abis
     (println "Writing contract abis")
     (write-abis abi-json)
@@ -49,7 +50,12 @@
 
     ; write the protobuf file
     (println "Writing protobuf definitions")
-    (write-to-path (str "/tmp/streamline/proto/" namespace ".proto") protobuf)))
+    (write-to-path (str "/tmp/streamline/proto/" namespace ".proto") protobuf)
+
+    ; write the rust file
+    (println "Writing lib.rs file")
+    (write-to-path "/tmp/streamline/src/lib.rs" (string/join "\n" fns))
+    ))
 
 (defn -main
   "I don't do a whole lot ... yet."
@@ -76,4 +82,4 @@
       ;module-code   (as-> modules m
                       ;(map #(create-module % symbol-table) m)
                       ;(string/join "\n" m))
-  (create-functions erc721 symbol-table))
+  (bundle-file "examples/erc721.strm"))

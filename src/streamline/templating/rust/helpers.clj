@@ -3,7 +3,7 @@
    [clojure.string :as string]
    [instaparse.core :as insta]
    [pogonos.core :as pg]
-   [streamline.ast.helpers :refer [format-type]]
+   [streamline.ast.helpers :refer [format-type pipeline-transforms]]
    [streamline.ast.metadata :refer [get-namespace]]
    [streamline.templating.helpers :refer [->snake-case format-rust-path
                                           lookup-symbol]]
@@ -90,7 +90,7 @@
   [parse-tree st]
   (as-> parse-tree t
     (insta/transform
-     {:struct-def (fn [name & _]
+     (merge {:struct-def (fn [name & _]
                     (let [name (format-rust-path (lookup-symbol name st))]
                       (array-type-conversion name)))
 
@@ -110,5 +110,5 @@
 
       :type (fn [& parts]
               (format-rust-path (lookup-symbol (format-type parts) st)))
-
-      :pipeline (fn [& _] "todo!();")} t)))
+      } pipeline-transforms) t)
+    (filter string? t)))

@@ -3,7 +3,7 @@
    [clojure.string :as string]
    [instaparse.core :as insta]
    [pogonos.core :as pg]
-   [streamline.ast.helpers :refer [format-type]]
+   [streamline.ast.helpers :refer [format-type pipeline-transforms]]
    [streamline.templating.helpers :refer [->proto-symbol ->snake-case
                                           format-rust-path lookup-symbol]]))
 
@@ -106,21 +106,6 @@
            :body body})
          (str "=> "))))
 
-(defn make-hof
-  [parent inputs body]
-  (pg/render-resource
-   "templates/rust/functions/hof.mustache"
-   {:parent parent
-    :inputs inputs
-    :body body}))
-
-(defn make-lambda
-  [inputs body]
-  (pg/render-resource
-   "templates/rust/functions/lambda.mustache"
-   {:inputs inputs
-    :body body}))
-
 (defn make-mfn
   [name inputs input-names output pipeline]
   (pg/render-resource
@@ -156,7 +141,7 @@
   [parse-tree st]
   (as-> parse-tree t
     (insta/transform
-     {:module (fn [kind name {:keys [:inputs :input-names :output]} pipeline]
+     (merge {:module (fn [kind name {:keys [:inputs :input-names :output]} pipeline]
                 (cond
                   (= kind "mfn") (make-mfn name inputs input-names output pipeline)
                   (= kind "sfn") (make-sfn name inputs input-names  output pipeline)))
@@ -196,23 +181,8 @@
 
       :module-output (fn [output] output)
 
-      :pipeline (fn [& steps] (string/join "\n" steps))
-
-      :hof (fn [parent {:keys [:inputs :body]}]
-             (make-hof parent inputs body))
-
-      :callback (fn [args expr]
-                  {:inputs args
-                   :body expr})
-
-      :lambda (fn [args expr]
-                (make-lambda args expr))
-
       :convert (fn [from to]
                  (str to "::from(" from ")"))
-
-      :fn-args (fn [& names]
-                 (string/join "," names))
 
       :chained-module (fn [module-name]
                         (-> module-name
@@ -228,4 +198,5 @@
       :type (fn [& parts]
               (-> (format-type parts)
                   (lookup-symbol st)
-                  (format-rust-path)))} t)))
+                  (format-rust-path)))} pipeline-transforms) t)
+    (filter string? t)))
