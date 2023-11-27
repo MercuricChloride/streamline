@@ -8,6 +8,7 @@
    [streamline.ast.metadata :as metadata]
    [streamline.ast.parser :refer [parser]]
    [streamline.templating.protobufs.helpers :refer [build-protobufs]]
+   [streamline.templating.rust.functions :refer [create-functions]]
    [streamline.templating.rust.helpers :refer [all-conversions]]
    [streamline.templating.yaml.helpers :refer [generate-yaml]])
   (:gen-class))
@@ -87,4 +88,4 @@
       ;module-code   (as-> modules m
                       ;(map #(create-module % symbol-table) m)
                       ;(string/join "\n" m))
-  (all-conversions erc721 symbol-table))
+  (create-functions erc721 symbol-table))

@@ -41,7 +41,8 @@
     <map-module-signature> = <'('> module-inputs <')'> <'->'> module-output
     <store-module-signature> = <'('> module-inputs <')'> <'->'> store-update-policy
     <store-update-policy> = ('Set' / 'SetNotExists' / 'Add' / 'Min' / 'Max') <'('> (type) <')'>
-    module-inputs = ( event-array / identifier)*
+    module-inputs = ( event-array / chained-module )*
+    chained-module = identifier
     module-output = type
 
     fn-def = <'fn'> identifier <':'> fn-signature <'{'> pipeline <'}'>

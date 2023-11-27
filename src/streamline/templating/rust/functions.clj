@@ -1,6 +1,7 @@
 (ns streamline.templating.rust.functions
   (:require
    [clojure.string :as string]
+   [instaparse.core :as insta]
    [pogonos.core :as pg]
    [streamline.ast.helpers :refer [format-type]]
    [streamline.templating.helpers :refer [->proto-symbol ->snake-case
@@ -174,5 +175,84 @@
      {:name name
       :inputs inputs
       :output output-type
-      :body body}))
-  )
+      :body body})))
+
+(defn make-mfn
+  [name inputs output pipeline]
+  (pg/render-resource
+   "templates/rust/functions/mfn.mustache"
+   {:name (->snake-case name)
+    :inputs inputs
+    :output output
+    :body pipeline}))
+
+(defn make-sfn
+  [name inputs output pipeline]
+  (pg/render-resource
+   "templates/rust/functions/sfn.mustache"
+   {:name (->snake-case name)
+    :inputs inputs
+    :output output ;; TODO Add logic to change how the store module works. Because the output dictates the kind of store it is.
+    :body pipeline}))
+
+(defn make-fn
+  [name inputs output pipeline]
+  (pg/render-resource
+   "templates/rust/functions/function.mustache"
+   {:name name
+    :inputs inputs
+    :output output
+    :body pipeline}))
+
+(defn create-functions
+  "Generates all the of the rust code for the functions and modules in a streamline file"
+  [parse-tree st]
+  (as-> parse-tree t
+    (insta/transform
+     {:module (fn [kind name {:keys [:inputs :output]} pipeline]
+                (cond
+                  (= kind "mfn") (make-mfn name inputs output pipeline)
+                  (= kind "sfn") (make-sfn name inputs output pipeline)))
+
+      :fn-def (fn [name {:keys [:inputs :output]} pipeline]
+                (make-fn name inputs output pipeline))
+
+      :fn-signature (fn [inputs output]
+                      {:inputs inputs
+                       :output output})
+
+      :fn-inputs (fn [& inputs]
+                   (->> inputs
+                        (map-indexed (fn [index input-type]
+                                       (str "input_" index ": " input-type)))
+                        (string/join ",")))
+
+      :module-signature (fn [inputs output]
+                          {:inputs inputs
+                           :output output})
+
+      :module-inputs (fn [& inputs]
+                       (->> inputs
+                            (map-indexed (fn [index input-type]
+                                           (str "input_" index ": " input-type)))
+                            (string/join ",")))
+
+      :module-output (fn [output] output)
+
+      :pipeline (fn [& _] "todo!();")
+
+      :chained-module (fn [module-name]
+                        (-> module-name
+                             (lookup-symbol st)
+                             (:output)
+                             (format-rust-path)))
+
+      :event-array (fn [& parts]
+                     (-> (format-type parts)
+                         (lookup-symbol st)
+                         (format-rust-path)))
+
+      :type (fn [& parts]
+              (-> (format-type parts)
+                  (lookup-symbol st)
+                  (format-rust-path)))} t)))

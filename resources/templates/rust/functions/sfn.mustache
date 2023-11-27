@@ -1,0 +1,6 @@
+#[substreams::handlers::store]
+pub fn {{name}}({{inputs}}, s: {{output}}) {
+    pipe!(({{inputs}})
+    {{{body}}}
+    ).into()
+}
