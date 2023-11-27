@@ -1,14 +1,15 @@
 (ns streamline.core
   (:require
-   [clojure.data.json :as json]
    [clojure.java.io :as io]
+   [clojure.pprint :as pprint]
    [clojure.string :as string]
    [instaparse.core :as insta]
-   [streamline.ast.helpers :refer [format-type]]
+   [streamline.ast.helpers :refer [generate-abi]]
    [streamline.ast.metadata :as metadata]
    [streamline.ast.parser :refer [parser]]
-   [streamline.templating.helpers :refer [lookup-event-array lookup-symbol]]
-   [streamline.templating.protobufs.helpers :refer [build-protobufs]])
+   [streamline.templating.protobufs.helpers :refer [build-protobufs]]
+   [streamline.templating.rust.helpers :refer [all-conversions]]
+   [streamline.templating.yaml.helpers :refer [generate-yaml]])
   (:gen-class))
 
 (def erc721 (parser (slurp "examples/erc721.strm")))
@@ -24,29 +25,52 @@
 (defn write-abis
   [abis]
   (doseq [abi abis]
-    (let [path (str "/tmp/streamline/abis/" (:name abi) ".json")]
-      (write-to-path path (json/write-str abi)))))
+    (let [path (str "/tmp/streamline/abis/" (:name abi) ".json")
+          abi (:abi-json abi)]
+      (write-to-path path abi))))
 
-;; (defn bundle-file
-;;   [path]
-;;   (let [parse-tree (parser (slurp path))
-;;         symbol-table (metadata/get-symbol-table parse-tree)
-;;         abi-json (generate-abi parse-tree)
-;;         yaml (generate-yaml parse-tree symbol-table)
-;;         proto-defs (create-protobuf-defs ast)
-;;         conversions (get-all-conversions ast symbol-table)]
-;;     ; write the abis
-;;     (write-abis abi-json)
+(defn try-parse
+  [path]
+  (let [output (parser (slurp path))]
+    (if-let [failure (insta/get-failure output)]
+      (do
+        (println "FAILED TO PARSE STREAMLINE FILE: " path "\n\n\n")
+        (pprint/pprint failure)
+        (println "\n\n\n")
+        (throw (Exception. (str "Failed to parse streamline file: " path "\n" failure))))
+      output)))
 
-;;     ; write the yaml
-;;     (write-to-path (str "/tmp/streamline/substreams.yaml") yaml)))
+(defn bundle-file
+  [path]
+  (let [parse-tree (try-parse path)
+        namespace (metadata/get-namespace parse-tree)
+        symbol-table (metadata/get-symbol-table parse-tree)
+
+        abi-json (generate-abi parse-tree symbol-table)
+        yaml (generate-yaml parse-tree symbol-table)
+        protobuf (build-protobufs parse-tree symbol-table)
+        conversions (all-conversions parse-tree symbol-table)]
+    ; write the abis
+    (println "Writing contract abis")
+    (write-abis abi-json)
+
+    ; write the yaml
+    (println "Writing substreams yaml")
+    (write-to-path (str "/tmp/streamline/substreams.yaml") yaml)
+
+    ; write the protobuf file
+    (println "Writing protobuf definitions")
+    (write-to-path (str "/tmp/streamline/proto/" namespace ".proto") protobuf)))
 
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
   (let [path (first args)]
-    ))
-(let [symbol-table (metadata/get-symbol-table erc721)
+    (println "Compiling streamline file: " path)
+    (bundle-file path)
+    (println "Finished compiling streamline file: " path)))
+
+(let [symbol-table (metadata/get-symbol-table erc721)]
       ;abis (generate-abi ast)
       ;; _ (write-abis abis)
       ;; modules (->> ast
@@ -63,6 +87,4 @@
       ;module-code   (as-> modules m
                       ;(map #(create-module % symbol-table) m)
                       ;(string/join "\n" m))
-      ]
-  (build-protobufs erc721 symbol-table)
-  )
+  (all-conversions erc721 symbol-table))

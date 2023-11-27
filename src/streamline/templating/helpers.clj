@@ -32,7 +32,7 @@
 
 (defn solidity->protobuf-type
   [type]
-  (cond (= "bool" type) "boolean"
+  (cond (= "bool" type) "bool"
         (= "string" type) "string"
         :else "string"))
 

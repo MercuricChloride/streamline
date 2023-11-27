@@ -37,7 +37,7 @@
         :struct-field (fn [type name]
                         (let [type (lookup-symbol (format-type type) symbol-table)
                               repeated? (if (string/ends-with? type "Array") true false)]
-                          {:type type
+                          {:type (if repeated? (string/replace type "Array" "") type)
                            :name name
                            :repeated repeated?}))
 

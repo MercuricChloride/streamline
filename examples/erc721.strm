@@ -23,14 +23,13 @@ struct Burn {
        address burner;
        uint256 token;
        SomethingElse bar;
-       Erc721.Transfer foo;
 }
 
 convert:
 Erc721.Transfer -> Burn {
     (transfer) => Burn {
                         burner: transfer.from,
-                        token: transfer.tokenId,
+                        token: transfer.tokenId
                       };
 }
 

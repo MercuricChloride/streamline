@@ -125,6 +125,5 @@
          :non-indexed-event-param (fn [type name]
                                     {:type (format-type type)
                                      :name name
-                                     :indexed true})
-})
+                                     :indexed true})})
        ))

@@ -294,7 +294,7 @@
         ; create the initial symbol-table
         symbol-table (store-symbols parse-tree)
         ; update the symbol table and parse tree with the module output metadata
-        [parse-tree symbol-table] (store-module-outputs parse-tree symbol-table)
+        [parse-tree symbol-table] (store-module-outputs parse-tree symbol-table)]
         ; update the parse tree with the type and field type metadata
-        parse-tree (map #(resolve-type % symbol-table) parse-tree)]
+        ;parse-tree (map #(resolve-type % symbol-table) parse-tree)
     symbol-table))
