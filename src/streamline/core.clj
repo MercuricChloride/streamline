@@ -1,19 +1,17 @@
 (ns streamline.core
   (:require
    [clojure.java.io :as io]
-   [clojure.pprint :as pprint]
    [clojure.string :as string]
-   [instaparse.core :as insta]
    [streamline.ast.helpers :refer [generate-abi]]
    [streamline.ast.metadata :as metadata]
-   [streamline.ast.parser :refer [parser]]
+   [streamline.ast.parser :refer [parser try-parse]]
    [streamline.templating.protobufs.helpers :refer [build-protobufs]]
    [streamline.templating.rust.functions :refer [create-functions]]
    [streamline.templating.rust.helpers :refer [all-conversions]]
    [streamline.templating.yaml.helpers :refer [generate-yaml]])
   (:gen-class))
 
-(def erc721 (parser (slurp "examples/erc721.strm")))
+(def erc721 (try-parse "examples/erc721.strm"))
 
 (defn write-to-path
   [path content]
@@ -30,16 +28,6 @@
           abi (:abi-json abi)]
       (write-to-path path abi))))
 
-(defn try-parse
-  [path]
-  (let [output (parser (slurp path))]
-    (if-let [failure (insta/get-failure output)]
-      (do
-        (println "FAILED TO PARSE STREAMLINE FILE: " path "\n\n\n")
-        (pprint/pprint failure)
-        (println "\n\n\n")
-        (throw (Exception. (str "Failed to parse streamline file: " path "\n" failure))))
-      output)))
 
 (defn bundle-file
   [path]

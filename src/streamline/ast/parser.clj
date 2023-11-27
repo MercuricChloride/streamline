@@ -1,5 +1,8 @@
 (ns streamline.ast.parser
-  (:require [instaparse.core :as insta]))
+  (:require
+   [clojure.edn :as edn]
+   [clojure.pprint :as pprint]
+   [instaparse.core :as insta]))
 
 (def parser
   (insta/parser
@@ -12,15 +15,18 @@
     <normal-import> = <'import'> string <';'>
     <import-as> = <'import'> string <'as'> identifier <';'>
 
-    lambda = <'('> fn-args <')'> <'=>'> ( (<'{'> (expression <';'>)* <'}'>) / (expression <';'>) )
-    hof = parent-function lambda
+    <anon-fn> = <'('> fn-args <')'> <'=>'> (expression <';'>)
+    lambda = anon-fn
+    callback = anon-fn
+    hof = parent-function callback
     fn-args = identifier*
     <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
     pipeline = (lambda / hof)*
 
     conversion = <'convert:'> type <'->'> type <'{'> pipeline <'}'>
 
-    <expression> = (number / string / address/ struct-expression / array-expression / convert / function-call / binary-expression / field-access / identifier)
+    <expression> = (number / string / address/ struct-expression / array-expression / convert / function-call / binary-expression / field-access / expr-ident)
+    expr-ident = identifier
 
     struct-expression = identifier <'{'> struct-expression-field* <'}'>
     struct-expression-field = identifier <':'> expression <','>?
@@ -87,3 +93,29 @@
     address = #'^0x[a-fA-F0-9]{40}'
     "
    :auto-whitespace :comma))
+
+(def expr-transform-map
+  {:number edn/read-string
+   :string edn/read-string
+   :boolean edn/read-string
+   :binary-op edn/read-string
+   :expr-ident edn/read-string
+   :binary-expression (fn [left op right]
+                        [op left right])
+   :function-call (fn [name & args]
+                    [(symbol name) args])
+   })
+
+(defn try-parse
+  [path]
+  (let [output (parser (slurp path))]
+    (if-let [failure (insta/get-failure output)]
+      (do
+        (println "FAILED TO PARSE STREAMLINE FILE: " path "\n\n\n")
+        (pprint/pprint failure)
+        (println "\n\n\n")
+        (throw (Exception. (str "Failed to parse streamline file: " path "\n" failure))))
+      (insta/transform
+       expr-transform-map
+       output)
+      )))

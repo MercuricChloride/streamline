@@ -106,101 +106,48 @@
            :body body})
          (str "=> "))))
 
-(defn create-mfn
-  "Converts a map module function into a rust function"
-  [module st]
-  (let [[_ _kind _name _signature & pipeline] module
-        m (meta module)
-        name (->snake-case (:name m))
-        inputs (as-> m m
-                 (:inputs m)
-                 (map :name m)
-                 (map #(lookup-symbol % st) m)
-                 (map #(format-rust-path %) m)
-                 (map-indexed (fn [i path] (str "input_" i ": " path)) m)
-                 (string/join "," m))
-        output-type (format-rust-path (:output-type m))
-        body (string/join "\n" (map #(->function % st) pipeline))]
-    (pg/render-resource
-     "templates/rust/functions/mfn.mustache"
-     {:name name
-      :inputs inputs
-      :output output-type
-      :body body})))
+(defn make-hof
+  [parent inputs body]
+  (pg/render-resource
+   "templates/rust/functions/hof.mustache"
+   {:parent parent
+    :inputs inputs
+    :body body}))
 
-(defn create-sfn
-  "Converts a store module function into a rust function"
-  [module st]
-  (let [[_ _kind _name _signature & pipeline] module
-        m (meta module)
-        name (->snake-case (:name m))
-        inputs (as-> m m
-                 (:inputs m)
-                 (map :name m)
-                 (map #(lookup-symbol % st) m)
-                 (map #(format-rust-path %) m)
-                 (map-indexed (fn [i path] (str "input_" i ": " path)) m)
-                 (string/join "," m))
-        output-type (format-rust-path (:output-type m))
-        body (string/join "\n" (map #(->function % st) pipeline))]
-    (pg/render-resource
-     "templates/rust/functions/mfn.mustache"
-     {:name name
-      :inputs inputs
-      :output output-type
-      :body body})))
-
-(defn create-module
-  [module st]
-  (let [[_ kind & _] module]
-    (case kind
-      "mfn" (create-mfn module st)
-      "sfn" nil) ;TODO
-    ))
-
-(defn create-fn
-  [fn-def st]
-  (let [[_ _name _signature & pipeline] fn-def
-        m (meta fn-def)
-        name (->snake-case (:name m))
-        inputs (as-> m m
-                 (map #(lookup-symbol % st) m)
-                 (map #(format-rust-path %) m)
-                 (map-indexed (fn [i path] (str "input_" i ": " path)) m)
-                 (string/join "," m))
-        output-type (format-rust-path (:output-type m))
-        body (string/join "\n" (map #(->function % st) pipeline))]
-    (pg/render-resource
-     "templates/rust/functions/fn.mustache"
-     {:name name
-      :inputs inputs
-      :output output-type
-      :body body})))
+(defn make-lambda
+  [inputs body]
+  (pg/render-resource
+   "templates/rust/functions/lambda.mustache"
+   {:inputs inputs
+    :body body}))
 
 (defn make-mfn
-  [name inputs output pipeline]
+  [name inputs input-names output pipeline]
   (pg/render-resource
    "templates/rust/functions/mfn.mustache"
    {:name (->snake-case name)
     :inputs inputs
+    :input-names input-names
     :output output
     :body pipeline}))
 
 (defn make-sfn
-  [name inputs output pipeline]
+  [name inputs input-names output pipeline]
   (pg/render-resource
    "templates/rust/functions/sfn.mustache"
    {:name (->snake-case name)
     :inputs inputs
+    :input-names input-names
     :output output ;; TODO Add logic to change how the store module works. Because the output dictates the kind of store it is.
     :body pipeline}))
 
 (defn make-fn
-  [name inputs output pipeline]
+  [name inputs input-names output pipeline]
   (pg/render-resource
    "templates/rust/functions/function.mustache"
    {:name name
     :inputs inputs
+    :input-names input-names
     :output output
     :body pipeline}))
 
@@ -209,43 +156,69 @@
   [parse-tree st]
   (as-> parse-tree t
     (insta/transform
-     {:module (fn [kind name {:keys [:inputs :output]} pipeline]
+     {:module (fn [kind name {:keys [:inputs :input-names :output]} pipeline]
                 (cond
-                  (= kind "mfn") (make-mfn name inputs output pipeline)
-                  (= kind "sfn") (make-sfn name inputs output pipeline)))
+                  (= kind "mfn") (make-mfn name inputs input-names output pipeline)
+                  (= kind "sfn") (make-sfn name inputs input-names  output pipeline)))
 
-      :fn-def (fn [name {:keys [:inputs :output]} pipeline]
-                (make-fn name inputs output pipeline))
+      :fn-def (fn [name {:keys [:inputs :input-names :output]} pipeline]
+                (make-fn name inputs input-names output pipeline))
 
-      :fn-signature (fn [inputs output]
+      :fn-signature (fn [{:keys [:inputs :input-names]} output]
                       {:inputs inputs
+                       :input-names input-names
                        :output output})
 
       :fn-inputs (fn [& inputs]
-                   (->> inputs
-                        (map-indexed (fn [index input-type]
-                                       (str "input_" index ": " input-type)))
-                        (string/join ",")))
+                   {:inputs (->> inputs
+                                 (map-indexed (fn [index input-type]
+                                                (str "input_" index ": " input-type)))
+                                 (string/join ","))
+                    :input-names (->> inputs
+                                      (map-indexed (fn [index _]
+                                                     (str "input_" index)))
+                                      (string/join ","))})
 
-      :module-signature (fn [inputs output]
+      :module-signature (fn [{:keys [:inputs :input-names]} output]
                           {:inputs inputs
+                           :input-names input-names
                            :output output})
 
       :module-inputs (fn [& inputs]
-                       (->> inputs
-                            (map-indexed (fn [index input-type]
-                                           (str "input_" index ": " input-type)))
-                            (string/join ",")))
+                       {:inputs (->> inputs
+                                     (map-indexed (fn [index input-type]
+                                                    (str "input_" index ": " input-type)))
+                                     (string/join ","))
+                        :input-names (->> inputs
+                                          (map-indexed (fn [index _]
+                                                         (str "input_" index)))
+                                          (string/join ","))})
 
       :module-output (fn [output] output)
 
-      :pipeline (fn [& _] "todo!();")
+      :pipeline (fn [& steps] (string/join "\n" steps))
+
+      :hof (fn [parent {:keys [:inputs :body]}]
+             (make-hof parent inputs body))
+
+      :callback (fn [args expr]
+                  {:inputs args
+                   :body expr})
+
+      :lambda (fn [args expr]
+                (make-lambda args expr))
+
+      :convert (fn [from to]
+                 (str to "::from(" from ")"))
+
+      :fn-args (fn [& names]
+                 (string/join "," names))
 
       :chained-module (fn [module-name]
                         (-> module-name
-                             (lookup-symbol st)
-                             (:output)
-                             (format-rust-path)))
+                            (lookup-symbol st)
+                            (:output)
+                            (format-rust-path)))
 
       :event-array (fn [& parts]
                      (-> (format-type parts)

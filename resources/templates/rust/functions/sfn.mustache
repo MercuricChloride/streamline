@@ -1,6 +1,8 @@
 #[substreams::handlers::store]
 pub fn {{name}}({{inputs}}, s: {{output}}) {
-    pipe!(({{inputs}})
+    let module_output_value = ({{input-names}});
+
     {{{body}}}
-    ).into()
+
+    module_output_value.into()
 }
