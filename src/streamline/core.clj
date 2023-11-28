@@ -31,4 +31,4 @@
 ;;       ;module-code   (as-> modules m
 ;;                       ;(map #(create-module % symbol-table) m)
 ;;                       ;(string/join "\n" m))
-   (bundle-file "examples/erc721.strm")
+   ;(bundle-file "examples/erc721.strm")

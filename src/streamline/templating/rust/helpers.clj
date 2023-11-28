@@ -27,7 +27,7 @@
   3. Vec<EventProto> -> EventProtoArray
   4. Block->EventProtoArray fn"
   [namespace interface event params]
-  (let [event-path (str "contracts." interface "." event)
+  (let [event-path (str "contracts." interface ".events." event)
         input-path (str namespace "." interface "." event)
         input-type (format-rust-path input-path)
         event-path (format-rust-path event-path)]

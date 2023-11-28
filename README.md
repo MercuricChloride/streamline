@@ -8,10 +8,9 @@ Check out the docs [HERE](doc/intro.md) to get started!
 
 ## Usage
 
-#### NOTE The startup of the JVM is slow. I will release a standalone built for native hardware. But its not the end of the world.
-#### TODO Bundle this into a standalone executable.
+#### NOTE I am adding a releases section here that will build the uberjar into a binary. I have it working locally, just need to wire up the actions! :)
 
-    $ lein run [PATH-TO-STRM-FILE]
+    $ streamline [cmd] [opts]
 
 ## Examples
 TODO
@@ -20,18 +19,21 @@ TODO
 
 I'm sure there are lots of bugs waiting to be found. If you find something please let me know!
 
-#### Features ready by 11/27/2023
-1. Store Modules (This is coming super soon)
-2. Arbitrary Functions
+#### Features ready by ~~11/27/2023~~ 11/31/2023
+1. ~~Store Modules (This is coming super soon)~~ DONE!
+2. ~~Arbitrary Functions~~ DONE!
 3. Modules w/ Param inputs
 4. Helpers for bootstrapping and fetching abis for contracts. Think `streamline init`
 5. Contract Instances
 6. Sink Configs
 
+_I pushed back the release of some of these features, as I spent a few days cleaning up and optimizing the code generation pathway. It makes building the repl much simpler. So that is only a few days of work away._
+
 #### Features coming soon
 1. Arbitrary substeams spkg interop
 2. Live REPL for substreams development, without wasting your data. (We will offer a free endpoint to query raw block data from)
 3. LSP and Editor Support for things other than emacs, since I already built that :)
+4. Rust fn interop 
 
 ## License
 
