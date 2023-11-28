@@ -19,7 +19,7 @@ TODO
 
 I'm sure there are lots of bugs waiting to be found. If you find something please let me know!
 
-#### Features ready by ~~11/27/2023~~ 11/31/2023
+#### Features ready by ~~11/27/2023~~ 11/30/2023
 1. ~~Store Modules (This is coming super soon)~~ DONE!
 2. ~~Arbitrary Functions~~ DONE!
 3. Modules w/ Param inputs
