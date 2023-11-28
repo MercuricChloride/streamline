@@ -2,6 +2,7 @@
   (:require
    [clojure.edn :as edn]
    [clojure.pprint :as pprint]
+   [clojure.string :as string]
    [instaparse.core :as insta]))
 
 (def parser
@@ -100,9 +101,7 @@
    :boolean edn/read-string
    :binary-op edn/read-string
    :expr-ident edn/read-string
-   :binary-expression str
-
-
+   ;:binary-expression str
    ;; :binary-expression (fn [left op right]
    ;;                      [op left right])
    ;; :function-call (fn [name & args]

@@ -1,5 +1,6 @@
 #[substreams::handlers::store]
 pub fn {{name}}({{inputs}}, s: {{output}}) {
+    let store = |k, v| s.store(k, v);
     let module_output_value = ({{input-names}});
 
     {{{body}}}

@@ -59,7 +59,6 @@
   [node child-type]
   (first (filter #(= (node-type %) child-type) node)))
 
-
 (defn generate-abi
   "Generates an ABI JSON string from a parse tree"
   [parse-tree symbol-table]

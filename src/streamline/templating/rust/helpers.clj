@@ -24,7 +24,8 @@
   "Creates the following conversions for an event:
   1. Block -> Event
   2. Event -> EventProto
-  3. Vec<EventProto> -> EventProtoArray"
+  3. Vec<EventProto> -> EventProtoArray
+  4. Block->EventProtoArray fn"
   [namespace interface event params]
   (let [event-path (str "contracts." interface "." event)
         input-path (str namespace "." interface "." event)
@@ -46,24 +47,42 @@
   (as-> parse-tree t
     (insta/transform
      (merge {:struct-def (fn [name & _]
-                    (let [name (format-rust-path (lookup-symbol name st))]
-                      (array-type-conversion name)))
+                           (let [name (format-rust-path (lookup-symbol name st))]
+                             (array-type-conversion name)))
 
-      :interface-def (fn [interface-name & events]
-                       (let [namespace (get-namespace t)]
-                         (map (fn [[event-name params]]
-                                (event-conversions namespace interface-name event-name params)) events)))
-      :event-def (fn [name & params]
-                   [name params])
-      :indexed-event-param (fn [_ name]
-                             (->snake-case name))
-      :non-indexed-event-param (fn [_ name]
-                                 (->snake-case name))
+             :interface-def (fn [interface-name & events]
+                              (let [namespace (get-namespace t)]
+                                (->> events
+                                     (map (fn [[event-name params]]
+                                            (event-conversions namespace interface-name event-name params)))
+                                     (string/join))))
 
-      :conversion (fn [from to pipeline]
-                      (create-conversion from to pipeline))
+             :event-def (fn [name & params]
+                          [name params])
+             :indexed-event-param (fn [_ name]
+                                    (->snake-case name))
+             :non-indexed-event-param (fn [_ name]
+                                        (->snake-case name))
 
-      :type (fn [& parts]
-              (format-rust-path (lookup-symbol (format-type parts) st)))
-      } pipeline-transforms) t)
-    (filter string? t)))
+             :conversion (fn [from to pipeline]
+                           (create-conversion from to pipeline))
+
+             :type (fn [& parts]
+                     (format-rust-path (lookup-symbol (format-type parts) st)))} pipeline-transforms) t)
+    (filter string? t)
+    (string/join t)))
+
+(defn use-contracts
+  [parse-tree]
+  (as-> parse-tree t
+    (insta/transform
+     {:interface-def (fn [name & _]
+                       (let [mod-name (->snake-case name)]
+                         (pg/render-resource "templates/rust/use-contract.mustache" {:mod-name mod-name :name name})))} t)
+    (filter string? t)
+    (pg/render-resource "templates/rust/contract-module.mustache" {:contracts (string/join t)})))
+
+(defn use-statements
+  [parse-tree]
+  (let [contracts (use-contracts parse-tree)]
+    (pg/render-resource "templates/rust/use-statements.mustache" {:contracts contracts})))

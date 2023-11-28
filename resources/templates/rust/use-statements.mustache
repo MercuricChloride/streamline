@@ -1,0 +1,11 @@
+use pb::*;
+use substreams::prelude::*;
+use substreams_ethereum::{Event, Function};
+use substreams_ethereum::pb::sf;
+
+mod pb;
+
+// We import the generated conversions so we don't pollute the namespace
+include!("/tmp/streamline/src/conversions.rs");
+
+{{{contracts}}}
