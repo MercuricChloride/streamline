@@ -80,10 +80,9 @@
     named-return = type <location?> identifier
 
     <identifier> = #'[a-zA-Z$_][a-zA-Z0-9$_]*'
-    array-identifier = identifier '[]'
-    fully-qualified-identifier = identifier (<'.'> (array-identifier / identifier))+
+    fully-qualified-identifier = identifier (<'.'> identifier)+
     event-array = identifier <'.'> identifier '[]'
-    <type> = (fully-qualified-identifier / array-identifier / identifier)
+    <type> = ( type '[]' / fully-qualified-identifier / identifier)
     number = #'[0-9]+'
     string = <'\"'> #'[^\"\\n]*' <'\"'>
     boolean = 'true' / 'false'

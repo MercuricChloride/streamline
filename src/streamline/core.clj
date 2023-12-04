@@ -12,5 +12,3 @@
     (println "Compiling streamline file: " path)
     (bundle-file path)
     (println "Finished compiling streamline file: " path)))
-
-(bundle-file "examples/erc721.strm")

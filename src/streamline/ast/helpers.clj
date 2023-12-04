@@ -40,7 +40,7 @@
 
 (defn type-node?
   [node-type]
-  #{:fully-qualified-identifier :array-identifier :identifier})
+  (#{:fully-qualified-identifier :array-identifier :event-array} node-type))
 
 (defn format-type
   "Converts a list of string, which represent each `part` of a

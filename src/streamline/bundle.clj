@@ -5,11 +5,8 @@
    [streamline.ast.helpers :refer [generate-abi]]
    [streamline.ast.metadata :as metadata]
    [streamline.ast.parser :refer [try-parse]]
-   [streamline.templating.protobufs.helpers :refer [build-protobufs]]
-   [streamline.templating.rust.functions :refer [create-functions]]
-   [streamline.templating.rust.helpers :refer [all-conversions use-statements]]
    [streamline.templating.yaml.helpers :refer [generate-yaml]]
-   [clojure.pprint :as pprint]))
+   [clj-yaml.core :as yaml]))
 
 (defn write-to-path
   [path content]
@@ -32,8 +29,8 @@
         namespace (metadata/get-namespace parse-tree)
         symbol-table (metadata/get-symbol-table parse-tree)
 
-        ;; abi-json (generate-abi parse-tree symbol-table)
-        ;; yaml (generate-yaml parse-tree symbol-table)
+        abi-json (generate-abi parse-tree symbol-table)
+        ;yaml (generate-yaml parse-tree symbol-table)
         ;; protobuf (build-protobufs parse-tree symbol-table)
         ;; conversions (all-conversions parse-tree symbol-table)
         ;; fns (create-functions parse-tree symbol-table)
@@ -48,8 +45,8 @@
     ;(write-abis abi-json)
 
     ; write the yaml
-    ;(println "Writing substreams yaml")
-    ;(write-to-path (str "/tmp/streamline/substreams.yaml") yaml)
+    ;; (println "Writing substreams yaml")
+    ;; (write-to-path (str "/tmp/streamline/substreams.yaml") yaml)
 
     ; write the protobuf file
     ;(println "Writing protobuf definitions")
@@ -62,5 +59,41 @@
     ; write the rust file
     ;(println "Writing lib.rs file")
     ;; (write-to-path "/tmp/streamline/src/lib.rs" lib-rs)
-
     ))
+(let [path "examples/erc721.strm"
+      parse-tree (try-parse path)
+      namespace (metadata/get-namespace parse-tree)
+      symbol-table (metadata/get-symbol-table parse-tree)
+
+      abi-json (generate-abi parse-tree symbol-table)
+      yaml (generate-yaml parse-tree symbol-table)
+        ;; protobuf (build-protobufs parse-tree symbol-table)
+        ;; conversions (all-conversions parse-tree symbol-table)
+        ;; fns (create-functions parse-tree symbol-table)
+        ;; use-stmts (use-statements parse-tree)
+        ;; lib-rs (str use-stmts fns)
+      ]
+
+  [parse-tree symbol-table]
+    ;(pprint/pprint lib-rs)
+    ; write the abis
+    ;(println "Writing contract abis")
+    ;(write-abis abi-json)
+
+    ; write the yaml
+    ;; (println "Writing substreams yaml")
+    ;; (write-to-path (str "/tmp/streamline/substreams.yaml") yaml)
+
+    ; write the protobuf file
+    ;(println "Writing protobuf definitions")
+    ;(write-to-path (str "/tmp/streamline/proto/" namespace ".proto") protobuf)
+    ;
+    ; write the conversions file
+    ;(println "Writing conversions.rs file")
+    ;(write-to-path "/tmp/streamline/src/conversions.rs" conversions)
+
+    ; write the rust file
+    ;(println "Writing lib.rs file")
+    ;; (write-to-path "/tmp/streamline/src/lib.rs" lib-rs)
+    yaml
+  )

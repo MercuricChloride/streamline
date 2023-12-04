@@ -53,9 +53,7 @@
 
         :event-def (fn [name & _] name)
 
-        :type (fn [& parts] (lookup-symbol (format-type parts) symbol-table))
-
-        :module (fn [kind name {:keys [:inputs :output]} & _]
+        :module (fn [kind name {:keys [:inputs :output]} _]
                   {:name name
                    :kind (if (= kind "mfn") "map" "store")
                    :inputs inputs
@@ -74,12 +72,17 @@
                                         kind (if (= module-kind "mfn") :map :store)]
                                     {kind input})
                                   input)) inputs))
+
         :event-array (fn [& parts]
                        (let [event-arr (format-type parts)
                              module-name (lookup-event-array event-arr symbol-table)]
                          {:map module-name}))
-        :module-output (fn [output]
-                         output)} t)
+
+        :module-output (fn [& output-parts]
+                         (lookup-symbol output-parts symbol-table))
+        :chained-module (fn [ident] ident)
+
+        } t)
       (flatten t))))
 
 (defn generate-yaml

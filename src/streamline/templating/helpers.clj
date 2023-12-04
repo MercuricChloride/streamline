@@ -1,7 +1,8 @@
 (ns streamline.templating.helpers
   (:require
    [camel-snake-kebab.core :as csk]
-   [clojure.string :as string]))
+   [clojure.string :as string]
+   [streamline.ast.helpers :refer [format-type]]))
 
 (defn ->snake-case [s]
   (if (nil? s)
@@ -36,26 +37,25 @@
         (= "string" type) "string"
         :else "string"))
 
-;; (defmulti lookup-sym (fn [node raw-type?] [(first node) raw-type?]))
-
-;; (defmethod lookup-sym :fully-qualified-identifier
-;;   [[_ & parts] raw-type]
-;;   (loop [parts parts
-;;          symbol-table])
-;;   )
+(defn- format-symbol
+  [symbol]
+  (if (string? symbol)
+    (string/split symbol #"\.")
+    (format-symbol (format-type symbol))))
 
 (defn lookup-symbol
   [symbol symbol-table & {:keys [:raw-type]}]
-  (if (solidity-type? symbol)
-    (if raw-type
-      symbol
-      (solidity->protobuf-type symbol))
-    (loop [parts (string/split symbol #"\.")
-           symbol-table symbol-table]
-      (let [resolved-symbol (get symbol-table (first parts))]
-        (if (= (count parts) 1)
-          resolved-symbol
-          (recur (rest parts) resolved-symbol))))))
+  (let [symbol (format-symbol symbol)]
+    (if (solidity-type? symbol)
+      (if raw-type
+        symbol
+        (solidity->protobuf-type symbol))
+      (loop [parts symbol
+             symbol-table symbol-table]
+        (let [resolved-symbol (get symbol-table (first parts))]
+          (if (= (count parts) 1)
+            resolved-symbol
+            (recur (rest parts) resolved-symbol)))))))
 
 (defn lookup-event-array
   "Returns the map module name for a event array being used as a module input.
