@@ -11,7 +11,6 @@
    [streamline.templating.yaml.helpers :refer [generate-yaml]]
    [clojure.pprint :as pprint]))
 
-
 (defn write-to-path
   [path content]
   (let [dir-path (io/file (string/join "/" (butlast (string/split path #"/"))))
@@ -33,32 +32,35 @@
         namespace (metadata/get-namespace parse-tree)
         symbol-table (metadata/get-symbol-table parse-tree)
 
-        abi-json (generate-abi parse-tree symbol-table)
-        yaml (generate-yaml parse-tree symbol-table)
-        protobuf (build-protobufs parse-tree symbol-table)
-        conversions (all-conversions parse-tree symbol-table)
-        fns (create-functions parse-tree symbol-table)
-        use-stmts (use-statements parse-tree)
-        lib-rs (str use-stmts fns)]
-    (pprint/pprint lib-rs)
+        ;; abi-json (generate-abi parse-tree symbol-table)
+        ;; yaml (generate-yaml parse-tree symbol-table)
+        ;; protobuf (build-protobufs parse-tree symbol-table)
+        ;; conversions (all-conversions parse-tree symbol-table)
+        ;; fns (create-functions parse-tree symbol-table)
+        ;; use-stmts (use-statements parse-tree)
+        ;; lib-rs (str use-stmts fns)
+        ]
+
+    [parse-tree symbol-table]
+    ;(pprint/pprint lib-rs)
     ; write the abis
-    (println "Writing contract abis")
-    (write-abis abi-json)
+    ;(println "Writing contract abis")
+    ;(write-abis abi-json)
 
     ; write the yaml
-    (println "Writing substreams yaml")
-    (write-to-path (str "/tmp/streamline/substreams.yaml") yaml)
+    ;(println "Writing substreams yaml")
+    ;(write-to-path (str "/tmp/streamline/substreams.yaml") yaml)
 
     ; write the protobuf file
-    (println "Writing protobuf definitions")
-    (write-to-path (str "/tmp/streamline/proto/" namespace ".proto") protobuf)
+    ;(println "Writing protobuf definitions")
+    ;(write-to-path (str "/tmp/streamline/proto/" namespace ".proto") protobuf)
     ;
     ; write the conversions file
-    (println "Writing conversions.rs file")
-    (write-to-path "/tmp/streamline/src/conversions.rs" conversions)
+    ;(println "Writing conversions.rs file")
+    ;(write-to-path "/tmp/streamline/src/conversions.rs" conversions)
 
     ; write the rust file
-    (println "Writing lib.rs file")
-    (write-to-path "/tmp/streamline/src/lib.rs" lib-rs)
+    ;(println "Writing lib.rs file")
+    ;; (write-to-path "/tmp/streamline/src/lib.rs" lib-rs)
 
-))
+    ))

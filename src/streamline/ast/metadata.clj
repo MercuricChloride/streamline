@@ -174,11 +174,23 @@
   "Resolves the type of a node to its protobuf type"
   (fn [node _symbol-table] (first node)))
 
-(defmethod resolve-type :type
+(defmethod resolve-type :fully-qualified-identifier
   [node symbol-table]
   (let [type (format-type node)
         resolved-type (lookup-symbol type symbol-table)]
     (push-metadata node {:type resolved-type})))
+
+(defmethod resolve-type :array-identifier
+  [node symbol-table]
+  (let [type (format-type node)
+        resolved-type (lookup-symbol type symbol-table)]
+    (push-metadata node {:type resolved-type})))
+
+;; (defmethod resolve-type :array-identifier
+;;   [node symbol-table]
+;;   (let [type (format-type node)
+;;         resolved-type (lookup-symbol type symbol-table)]
+;;     (push-metadata node {:type resolved-type})))
 
 (defmethod resolve-type :struct-def
   [node symbol-table]

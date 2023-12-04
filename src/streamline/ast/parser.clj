@@ -2,8 +2,7 @@
   (:require
    [clojure.edn :as edn]
    [clojure.pprint :as pprint]
-   [clojure.string :as string]
-   [instaparse.core :as insta]))
+   [instaparse.core :as insta :refer [defparser]]))
 
 (def parser
   (insta/parser
@@ -13,32 +12,30 @@
     <file-type> = 'stream' / 'sink'
 
     import-statement = (normal-import / import-as)
-    <normal-import> = <'import'> string <';'>
-    <import-as> = <'import'> string <'as'> identifier <';'>
+    normal-import = <'import'> string <';'>
+    import-as = <'import'> string <'as'> identifier <';'>
 
-    <anon-fn> = <'('> fn-args <')'> <'=>'> (expression <';'>)
-    lambda = anon-fn
-    callback = anon-fn
-    hof = parent-function callback
+    lambda = <'('> fn-args <')'> <'=>'> (expression <';'>)
+    hof = parent-function lambda
     fn-args = identifier*
     <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
     pipeline = (lambda / hof)*
 
     conversion = <'convert:'> type <'->'> type <'{'> pipeline <'}'>
 
-    <expression> = (number / string / address/ struct-expression / array-expression / convert / function-call / binary-expression / field-access / expr-ident)
-    expr-ident = identifier
+    <expression> = (literal / convert / function-call / binary-expression / field-access / identifier)
 
-    struct-expression = identifier <'{'> struct-expression-field* <'}'>
-    struct-expression-field = identifier <':'> expression <','>?
+    literal = (number / string / boolean / address / array-literal / struct-literal )
 
-    array-expression = <'['> expression* <']'>
+    binary-expression = expression binary-op expression
+    binary-op = ('+' / '-' / '*' / '/' / '==' / '!=' / '<' / '>' / '<=' / '>=' / '&&' / '||' / '!')
+
+    struct-literal = identifier <'{'> struct-literal-field* <'}'>
+    struct-literal-field = identifier <':'> expression <','>?
+    array-literal = <'['> expression* <']'>
 
     convert = <'convert'> <'('> identifier type <')'>
-    function-call = identifier <'('> expression* <')'>
-
-    binary-op = ('+' / '-' / '*' / '/' / '==' / '!=' / '<' / '>' / '<=' / '>=' / '&&' / '||' / '!')
-    binary-expression = expression binary-op expression
+    function-call = !convert identifier <'('> expression* <')'>
 
     field-access = expression (<'.'> identifier)+
 
@@ -83,14 +80,13 @@
     named-return = type <location?> identifier
 
     <identifier> = #'[a-zA-Z$_][a-zA-Z0-9$_]*'
-    <array-identifier> = #'[a-zA-Z$_][a-zA-Z0-9$_]*' '[]'
-    <fully-qualified-identifier> = identifier (<'.'> (array-identifier / identifier))+
+    array-identifier = identifier '[]'
+    fully-qualified-identifier = identifier (<'.'> (array-identifier / identifier))+
     event-array = identifier <'.'> identifier '[]'
-    type = (fully-qualified-identifier / array-identifier / identifier)
+    <type> = (fully-qualified-identifier / array-identifier / identifier)
     number = #'[0-9]+'
     string = <'\"'> #'[^\"\\n]*' <'\"'>
     boolean = 'true' / 'false'
-    array = <'['> <']'>
     address = #'^0x[a-fA-F0-9]{40}'
     "
    :auto-whitespace :comma))
@@ -100,13 +96,7 @@
    :string edn/read-string
    :boolean edn/read-string
    :binary-op edn/read-string
-   :expr-ident edn/read-string
-   ;:binary-expression str
-   ;; :binary-expression (fn [left op right]
-   ;;                      [op left right])
-   ;; :function-call (fn [name & args]
-   ;;                  [(symbol name) args])
-   })
+   :expr-ident edn/read-string})
 
 (defn try-parse
   [path]
@@ -119,5 +109,4 @@
         (throw (Exception. (str "Failed to parse streamline file: " path "\n" failure))))
       (insta/transform
        expr-transform-map
-       output)
-      )))
+       output))))

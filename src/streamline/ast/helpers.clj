@@ -38,10 +38,17 @@
    :fn-args (fn [& names]
               (string/join "," names))})
 
+(defn type-node?
+  [node-type]
+  #{:fully-qualified-identifier :array-identifier :identifier})
+
 (defn format-type
-  "Formats a type node into a string"
+  "Converts a list of string, which represent each `part` of a
+  type node into a string, split by a `.`
+  IE `[:type 'Foo' 'Bar' '[]']` would become:
+  `Foo.Bar[]`"
   ([type]
-   (let [type (if (= (first type) :type) (rest type) type)]
+   (let [type (if (type-node? (first type)) (rest type) type)]
      (if (= (last type) "[]")
        (str (string/join "." (butlast type)) "[]")
        (str (string/join "." type))))))

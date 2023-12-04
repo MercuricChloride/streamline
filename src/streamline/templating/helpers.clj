@@ -36,10 +36,20 @@
         (= "string" type) "string"
         :else "string"))
 
+;; (defmulti lookup-sym (fn [node raw-type?] [(first node) raw-type?]))
+
+;; (defmethod lookup-sym :fully-qualified-identifier
+;;   [[_ & parts] raw-type]
+;;   (loop [parts parts
+;;          symbol-table])
+;;   )
+
 (defn lookup-symbol
-  [symbol symbol-table]
+  [symbol symbol-table & {:keys [:raw-type]}]
   (if (solidity-type? symbol)
-    (solidity->protobuf-type symbol)
+    (if raw-type
+      symbol
+      (solidity->protobuf-type symbol))
     (loop [parts (string/split symbol #"\.")
            symbol-table symbol-table]
       (let [resolved-symbol (get symbol-table (first parts))]
@@ -57,4 +67,3 @@
 (defn ->proto-symbol
   [symbol symbol-table]
   (format-rust-path (lookup-symbol symbol symbol-table)))
-

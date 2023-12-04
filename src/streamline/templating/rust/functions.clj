@@ -50,20 +50,23 @@
              :fn-def (fn [name {:keys [:inputs :input-names :output]} pipeline]
                        (make-fn name inputs input-names output pipeline))
 
-             :fn-signature (fn [{:keys [:inputs :input-names]} output]
+             :fn-signature (fn [{:keys [:inputs :input-names]} [output _]]
                              {:inputs inputs
                               :input-names input-names
                               :output output})
 
              :fn-inputs (fn [& inputs]
                           {:inputs (->> inputs
-                                        (map-indexed (fn [index input-type]
+                                        (map-indexed (fn [index [input-type _]]
                                                        (str "input_" index ": " input-type)))
                                         (string/join ","))
                            :input-names (->> inputs
                                              (map-indexed (fn [index _]
                                                             (str "input_" index)))
-                                             (string/join ","))})
+                                             (string/join ","))
+                           :input-types (->> inputs
+                                             (map-indexed (fn [index [_ raw-type]]
+                                                            raw-type)))})
 
              :module-signature (fn [{:keys [:inputs :input-names]} output]
                                  {:inputs inputs
@@ -80,9 +83,9 @@
                                                                 (str "input_" index)))
                                                  (string/join ","))})
 
-             :module-output (fn [output] output)
+             :module-output (fn [[output _]] output)
 
-             :convert (fn [from to]
+             :convert (fn [from [to _]]
                         (str to "::from(" from ")"))
 
              :chained-module (fn [module-name]
@@ -96,10 +99,20 @@
                                 (lookup-symbol st)
                                 (format-rust-path)))
 
+             ; NOTE We are returning a vec with the rust / protobuf type. As well as the string representation of the type.
              :type (fn [& parts]
-                     (-> (format-type parts)
-                         (lookup-symbol st)
-                         (format-rust-path)))
+                     [(-> (format-type parts)
+                          (lookup-symbol st)
+                          (format-rust-path))
+                      (as-> parts p
+                        (format-type p)
+                        (lookup-symbol p st :raw-type true)
+                        (format-rust-path p))])
+
+             :fully-qualified-identifier (fn []) ;TODO Impliment me
+             :array-identifier (fn []) ;TODO Impliment
+             :identifier (fn []) ;TODO Impliment me
+             ;:event-array (fn []) ;TODO Impliment me
 
              :field-access (fn [expr field]
                              (str expr "." field))
@@ -107,8 +120,7 @@
              :binary-expression (fn [left op right]
                                   (str left " " op " " right))
              :function-call (fn [function & args]
-                              (str function "(" (string/join "," args) ")"))
-             }
+                              (str function "(" (string/join "," args) ")"))}
             pipeline-transforms) t)
     (filter string? t)
     (string/join t)))

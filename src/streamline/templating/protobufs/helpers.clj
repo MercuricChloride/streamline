@@ -61,7 +61,9 @@
                                      {:type type
                                       :name name
                                       :repeated repeated?
-                                      :indexed true}))} t)
+                                      :indexed true}))
+
+} t)
       (string/join "\n" t)
       (string/replace t (str namespace ".") "")
       (pg/render-resource "templates/proto/protofile.mustache" {:namespace namespace :messages t}))))
