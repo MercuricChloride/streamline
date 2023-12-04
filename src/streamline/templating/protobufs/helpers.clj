@@ -35,7 +35,7 @@
                       (build-proto-message name (build-proto-fields fields) :build-array))
 
         :struct-field (fn [type name]
-                        (let [type (lookup-symbol (format-type type) symbol-table)
+                        (let [type (lookup-symbol type symbol-table)
                               repeated? (if (string/ends-with? type "Array") true false)]
                           {:type (if repeated? (string/replace type "Array" "") type)
                            :name name
@@ -48,7 +48,7 @@
                      (build-proto-message name (build-proto-fields params) :build-array))
 
         :indexed-event-param (fn [type name]
-                               (let [type (lookup-symbol (format-type type) symbol-table)
+                               (let [type (lookup-symbol type symbol-table)
                                      repeated? (if (string/ends-with? type "Array") true false)]
                                  {:type type
                                   :name name
@@ -56,14 +56,13 @@
                                   :indexed true}))
 
         :non-indexed-event-param (fn [type name]
-                                   (let [type (lookup-symbol (format-type type) symbol-table)
+                                   (let [type (lookup-symbol type symbol-table)
                                          repeated? (if (string/ends-with? type "Array") true false)]
                                      {:type type
                                       :name name
                                       :repeated repeated?
-                                      :indexed true}))
-
-} t)
+                                      :indexed true}))} t)
       (string/join "\n" t)
       (string/replace t (str namespace ".") "")
-      (pg/render-resource "templates/proto/protofile.mustache" {:namespace namespace :messages t}))))
+      (pg/render-resource "templates/proto/protofile.mustache" {:namespace namespace :messages t})
+      )))

@@ -24,12 +24,13 @@
 
 (defn solidity-type?
   [type]
-  (or (string/starts-with? type "uint")
-      (string/starts-with? type "int")
-      (string/starts-with? type "bytes")
-      (string/starts-with? type "bool")
-      (string/starts-with? type "string")
-      (string/starts-with? type "address")))
+  (let [type (first type)]
+    (or (string/starts-with? type "uint")
+        (string/starts-with? type "int")
+        (string/starts-with? type "bytes")
+        (string/starts-with? type "bool")
+        (string/starts-with? type "string")
+        (string/starts-with? type "address"))))
 
 (defn solidity->protobuf-type
   [type]
@@ -40,7 +41,7 @@
 (defn- format-symbol
   [symbol]
   (if (string? symbol)
-    (string/split symbol #"\.")
+    (string/split "address" #"\.")
     (format-symbol (format-type symbol))))
 
 (defn lookup-symbol
