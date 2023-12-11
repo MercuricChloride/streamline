@@ -6,6 +6,8 @@
    [streamline.ast.metadata :as metadata]
    [streamline.ast.parser :refer [try-parse]]
    [streamline.templating.protobufs.helpers :refer [build-protobufs]]
+   [streamline.templating.rust.functions :refer [create-functions]]
+   [streamline.templating.rust.helpers :refer [all-conversions]]
    [streamline.templating.yaml.helpers :refer [generate-yaml]]))
 
 (defn write-to-path
@@ -60,20 +62,22 @@
     ;(println "Writing lib.rs file")
     ;; (write-to-path "/tmp/streamline/src/lib.rs" lib-rs)
     ))
-(let [path "examples/erc721.strm"
+
+
+'(let [path "examples/erc721.strm"
       parse-tree (try-parse path)
       namespace (metadata/get-namespace parse-tree)
       symbol-table (metadata/get-symbol-table parse-tree)
 
       abi-json (generate-abi parse-tree symbol-table)
       yaml (generate-yaml parse-tree symbol-table)
-      ;protobuf (build-protobufs parse-tree symbol-table)
-        ;; conversions (all-conversions parse-tree symbol-table)
+      protobuf (build-protobufs parse-tree symbol-table)
+      conversions (all-conversions parse-tree symbol-table)
         ;; fns (create-functions parse-tree symbol-table)
         ;; use-stmts (use-statements parse-tree)
         ;; lib-rs (str use-stmts fns)
       ]
 
   [parse-tree symbol-table]
-  (build-protobufs parse-tree symbol-table)
+ ; (create-functions parse-tree symbol-table)
   )

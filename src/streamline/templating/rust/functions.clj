@@ -4,7 +4,7 @@
    [instaparse.core :as insta]
    [pogonos.core :as pg]
    [streamline.ast.helpers :refer [format-type pipeline-transforms]]
-   [streamline.templating.helpers :refer [->proto-symbol ->snake-case
+   [streamline.templating.helpers :refer [->proto-symbol ->snake-case lookup-and-format-path
                                           format-rust-path lookup-symbol]]))
 
 (defn make-mfn
@@ -28,12 +28,13 @@
     :body pipeline}))
 
 (defn make-fn
-  [name inputs input-names output pipeline]
+  [name inputs input-names input-types output pipeline]
   (pg/render-resource
    "templates/rust/functions/function.mustache"
    {:name name
     :inputs inputs
     :input-names input-names
+    :input-types input-types
     :output output
     :body pipeline}))
 
@@ -47,26 +48,26 @@
                          (= kind "mfn") (make-mfn name inputs input-names output pipeline)
                          (= kind "sfn") (make-sfn name inputs input-names  output pipeline)))
 
-             :fn-def (fn [name {:keys [:inputs :input-names :output]} pipeline]
-                       (make-fn name inputs input-names output pipeline))
+             :fn-def (fn [name {:keys [:inputs :input-names :input-types :output]} pipeline]
+                       (make-fn name inputs input-names input-types output pipeline))
 
-             :fn-signature (fn [{:keys [:inputs :input-names]} [output _]]
+             :fn-signature (fn [{:keys [:inputs :input-names]} output]
                              {:inputs inputs
                               :input-names input-names
                               :output output})
 
              :fn-inputs (fn [& inputs]
                           {:inputs (->> inputs
-                                        (map-indexed (fn [index [input-type _]]
-                                                       (str "input_" index ": " input-type)))
+                                        (map-indexed (fn [index input-type]
+                                                       (str "input_" index ": " (lookup-and-format-path input-type st))))
                                         (string/join ","))
                            :input-names (->> inputs
                                              (map-indexed (fn [index _]
                                                             (str "input_" index)))
                                              (string/join ","))
                            :input-types (->> inputs
-                                             (map-indexed (fn [index [_ raw-type]]
-                                                            raw-type)))})
+                                             (map (fn [input-type]
+                                                            (lookup-and-format-path input-type st :raw-type true))))})
 
              :module-signature (fn [{:keys [:inputs :input-names]} output]
                                  {:inputs inputs
@@ -83,36 +84,25 @@
                                                                 (str "input_" index)))
                                                  (string/join ","))})
 
-             :module-output (fn [[output _]] output)
+             :module-output (fn [& parts] (lookup-and-format-path parts st))
 
              :convert (fn [from [to _]]
                         (str to "::from(" from ")"))
 
              :chained-module (fn [module-name]
-                               (-> module-name
-                                   (lookup-symbol st)
-                                   (:output)
-                                   (format-rust-path)))
+                               ;"epicsadf"
+                               ;; (-> module-name
+                               ;;     (lookup-symbol st)
+                               ;;     (:output)
+                               ;;     (format-rust-path))
+                               )
 
-             :event-array (fn [& parts]
-                            (-> (format-type parts)
-                                (lookup-symbol st)
-                                (format-rust-path)))
+             :event-array (fn [& parts] (lookup-and-format-path parts st))
 
-             ; NOTE We are returning a vec with the rust / protobuf type. As well as the string representation of the type.
-             :type (fn [& parts]
-                     [(-> (format-type parts)
-                          (lookup-symbol st)
-                          (format-rust-path))
-                      (as-> parts p
-                        (format-type p)
-                        (lookup-symbol p st :raw-type true)
-                        (format-rust-path p))])
-
-             :fully-qualified-identifier (fn []) ;TODO Impliment me
-             :array-identifier (fn []) ;TODO Impliment
-             :identifier (fn []) ;TODO Impliment me
-             ;:event-array (fn []) ;TODO Impliment me
+             :fully-qualified-identifier (fn [& parts] [(lookup-and-format-path parts st)
+                                                       (lookup-and-format-path parts st :raw-type true)]) ;TODO Impliment me
+             ;:array-identifier (fn [& parts] (str parts)) ;TODO Impliment
+             ;:identifier (fn [& parts] (str parts)) ;TODO Impliment me
 
              :field-access (fn [expr field]
                              (str expr "." field))

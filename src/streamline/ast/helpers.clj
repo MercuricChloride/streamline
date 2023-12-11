@@ -40,7 +40,7 @@
 
 (defn type-node?
   [node-type]
-  (#{:fully-qualified-identifier :array-identifier :event-array} node-type))
+  (#{:fully-qualified-identifier :array-identifier :event-array :chained-module} node-type))
 
 (defn format-type
   "Converts a list of string, which represent each `part` of a
@@ -48,7 +48,7 @@
   IE `[:type 'Foo' 'Bar' '[]']` would become:
   `Foo.Bar[]`"
   ([type]
-   (let [type (if (type-node? (first type)) (rest type) type)]
+   (let [type (if (type-node? (first type)) (rest type) [type])]
      (if (= (last type) "[]")
        (str (string/join "." (butlast type)) "[]")
        (str (string/join "." type))))))

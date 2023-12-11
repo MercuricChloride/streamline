@@ -24,7 +24,7 @@
 
 (defn solidity-type?
   [type]
-  (let [type (first type)]
+  (let [type (if (string? type) type (first type)) ]
     (or (string/starts-with? type "uint")
         (string/starts-with? type "int")
         (string/starts-with? type "bytes")
@@ -41,7 +41,7 @@
 (defn- format-symbol
   [symbol]
   (if (string? symbol)
-    (string/split "address" #"\.")
+    (string/split symbol #"\.")
     (format-symbol (format-type symbol))))
 
 (defn lookup-symbol
@@ -49,7 +49,7 @@
   (let [symbol (format-symbol symbol)]
     (if (solidity-type? symbol)
       (if raw-type
-        symbol
+        (str symbol)
         (solidity->protobuf-type symbol))
       (loop [parts symbol
              symbol-table symbol-table]
@@ -68,3 +68,9 @@
 (defn ->proto-symbol
   [symbol symbol-table]
   (format-rust-path (lookup-symbol symbol symbol-table)))
+
+(defn lookup-and-format-path
+  [symbol symbol-table & {:keys [:raw-type]}]
+  (-> symbol
+      (lookup-symbol symbol-table :raw-type raw-type)
+      format-rust-path))

@@ -6,6 +6,8 @@
    [streamline.ast.helpers :refer [find-child format-type]]
    [streamline.templating.helpers :refer [->snake-case lookup-symbol]]))
 
+(add-tap pprint/pprint)
+
 (defn protobuf-node?
   "Returns if an ast node will be used to generate a protobuf message"
   [[kind & _]]
@@ -80,12 +82,13 @@
        last
        (format-type)))
   ([module symbol-table]
+   (tap> (-> module
+             (find-child :module-signature)))
    (-> module
        (find-child :module-signature)
        (find-child :module-output)
-       last
        (format-type)
-       (lookup-symbol symbol-table))))
+       (lookup-symbol symbol-table :raw-type true))))
 
 (defmulti store-symbol
   "Stores the symbols for a node in a symbol table"
@@ -150,6 +153,7 @@
   [node st]
   (if (= (first node) :module)
     (let [[_ kind module-name] node
+          _ (tap> node)
           signature-output (get-module-output-type node st)
           node (push-metadata node {:output-type signature-output})
           node (push-metadata node {:name module-name})
@@ -167,135 +171,6 @@
           parse-tree))
 
 ;;;========================================
-;;; SYMBOL RESOLVER FOR AST
-;;; =======================================
-
-(defmulti resolve-type
-  "Resolves the type of a node to its protobuf type"
-  (fn [node _symbol-table] (first node)))
-
-(defmethod resolve-type :fully-qualified-identifier
-  [node symbol-table]
-  (let [type (format-type node)
-        resolved-type (lookup-symbol type symbol-table)]
-    (push-metadata node {:type resolved-type})))
-
-(defmethod resolve-type :array-identifier
-  [node symbol-table]
-  (let [type (format-type node)
-        resolved-type (lookup-symbol type symbol-table)]
-    (push-metadata node {:type resolved-type})))
-
-;; (defmethod resolve-type :array-identifier
-;;   [node symbol-table]
-;;   (let [type (format-type node)
-;;         resolved-type (lookup-symbol type symbol-table)]
-;;     (push-metadata node {:type resolved-type})))
-
-(defmethod resolve-type :struct-def
-  [node symbol-table]
-  (let [m (meta node)
-        [kind name & children] node
-        new-node (->> children
-                      (map #(resolve-type % symbol-table))
-                      (concat [kind name]))]
-    (with-meta new-node m)))
-
-;; NOTE This method should only be called after we add the module outputs to the symbol table
-(defmethod resolve-type :module
-  [node symbol-table]
-  (let [inputs (as-> node n
-                 (find-child n :module-signature)
-                 (find-child n :module-inputs)
-                 (map format-type (rest n)) ; get all the types formatted
-                 (map (fn [input]
-                        (let [event-fns (:event-fns (meta symbol-table))
-                              [input-symbol input-kind] (if-let [event-fn (get event-fns input)]
-                                                          [event-fn "mfn"]
-                                                          (let [lookup (lookup-symbol input symbol-table)]
-                                                            [(:output lookup) (:module-kind lookup)]))]
-                          {:type input-symbol
-                           :kind input-kind
-                           :name input})) n))]
-    (push-metadata node {:inputs inputs})))
-
-(defmethod resolve-type :interface-def
-  [node symbol-table]
-  (let [m (meta node)
-        [kind name & children] node
-        new-node (->> children
-                      (map #(resolve-type % symbol-table))
-                      (concat [kind name]))]
-    (with-meta new-node m)))
-
-(defmethod resolve-type :event-def
-  [node symbol-table]
-  (let [m (meta node)
-        [kind name & children] node
-        new-node (->> children
-                      (map #(resolve-type % symbol-table))
-                      (concat [kind name]))
-        params (->> children
-                    (map last)
-                    (map ->snake-case))]
-    (with-meta new-node (merge m {:params params}))))
-
-(defmethod resolve-type :indexed-event-param
-  [node symbol-table]
-  (let [[kind type name] node
-        resolved-type (resolve-type type symbol-table)
-        proto (-> resolved-type
-                  (meta)
-                  :type)
-        new-meta {:type proto
-                  :name (->snake-case name)
-                  :indexed true
-                  :repeated (string/ends-with? type "[]")}
-        new-node (concat [kind resolved-type name])]
-    (push-metadata new-node new-meta)))
-
-(defmethod resolve-type :non-indexed-event-param
-  [node symbol-table]
-  (let [[kind type name] node
-        resolved-type (resolve-type type symbol-table)
-        proto (-> resolved-type
-                  (meta)
-                  :type)
-        new-meta {:type proto
-                  :name (->snake-case name)
-                  :indexed false
-                  :repeated (string/ends-with? type "[]")}
-        new-node (concat [kind resolved-type name])]
-    (push-metadata new-node new-meta)))
-
-(defmethod resolve-type :struct-field
-  [node symbol-table]
-  (let [[kind type name] node
-        proto (-> type
-                  (resolve-type symbol-table)
-                  (meta)
-                  :type)
-        new-node (concat [kind name type])
-        new-meta {:type proto
-                  :name (->snake-case name)
-                  :repeated (string/ends-with? type "[]")}]
-    (push-metadata new-node new-meta)))
-
-(defmethod resolve-type :default
-  [node _]
-  (if (string? node)
-    node
-    (let [meta (meta node)]
-      (with-meta node meta))))
-
-(defn get-module-inputs
-  [module]
-  (-> module
-      (find-child :module-signature)
-      (find-child :module-inputs)
-      rest))
-
-;;;========================================
 ;;; PUBLIC METADATA HELPERS
 ;;; =======================================
 (defn get-symbol-table
@@ -307,6 +182,4 @@
         symbol-table (store-symbols parse-tree)
         ; update the symbol table and parse tree with the module output metadata
         [parse-tree symbol-table] (store-module-outputs parse-tree symbol-table)]
-        ; update the parse tree with the type and field type metadata
-        ;parse-tree (map #(resolve-type % symbol-table) parse-tree)
     symbol-table))
