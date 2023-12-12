@@ -244,6 +244,6 @@ mfn burns = erc721_transfers
 
 (def output (parser test-code))
 
-(eval (macroexpand-all (nth (insta/transform
-                             repl-transform-map output) 2)))
 
+;; (eval (macroexpand-all (nth (insta/transform
+;;                              repl-transform-map output) 2)))

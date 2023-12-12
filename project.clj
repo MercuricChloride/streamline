@@ -16,5 +16,7 @@
                  [org.clojure/data.json "2.4.0"]
                  [camel-snake-kebab "0.4.3"]
                  [pogonos "0.2.1"]
-                 [clj-commons/clj-yaml "1.0.27"]]
+                 [clj-commons/clj-yaml "1.0.27"]
+                 [compojure "1.7.0"]
+                 [http-kit "2.7.0"]]
   :profiles {:uberjar {:aot :all}})
