@@ -2,7 +2,8 @@
   (:require
    [clojure.edn :as edn]
    [clojure.pprint :as pprint]
-   [instaparse.core :as insta :refer [defparser]]))
+   [clojure.walk :refer [macroexpand-all]]
+   [instaparse.core :as insta]))
 
 (def parser
   (insta/parser
@@ -180,7 +181,7 @@ mfn burns = erc721_transfers
 
 (defn transform-hof
   [kind lambda]
-  `(~(symbol kind) ~@lambda))
+  `(~(symbol kind) ~lambda))
 
 (defn transform-lambda
   [args body]
@@ -243,7 +244,6 @@ mfn burns = erc721_transfers
 
 (def output (parser test-code))
 
-(insta/transform
- repl-transform-map output)
+(eval (macroexpand-all (nth (insta/transform
+                             repl-transform-map output) 2)))
 
-;[modules module-edges]
