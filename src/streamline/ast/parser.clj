@@ -129,15 +129,25 @@ mfn burns = erc721_transfers
 
 (def module-edges (atom []))
 
+(defn store-inputs
+  [inputs module-name]
+  (for [input inputs]
+    (swap! module-edges conj {:from input :to module-name})))
+
 (defn transform-module
   [kind ident inputs pipeline]
   (swap! modules conj ident)
-  `(defn ~(symbol ident)
-     [~@inputs]
-     ~pipeline))
+  (store-inputs inputs ident)
+  (let [input-symbol (gensym "inputs")]
+    `(defn ~(symbol ident)
+       [~@inputs]
+       (let [~input-symbol ~@inputs]
+         (->> ~input-symbol
+              ~@pipeline)))))
 
 (defn transform-event-def
   [{:keys [:mfn :addresses]} & _]
+  (swap! modules conj mfn)
   `(defn ~(symbol mfn)
      ))
 
@@ -149,22 +159,91 @@ mfn burns = erc721_transfers
   [key value]
   {(keyword key) value})
 
+(defn transform-function-call
+  [function args]
+  `(~(symbol function) ~@args))
+
+(defn transform-field-access
+  [obj & fields]
+  (let [obj (symbol obj)
+        field-keys (map keyword fields)]
+    `(-> ~obj
+         ~@field-keys)))
+
+(defn transform-binary-expr
+  [lh op rh]
+  `(~op ~lh ~rh))
+
+(defn transform-pipeline
+  [_ & funcs]
+  funcs)
+
+(defn transform-hof
+  [kind lambda]
+  `(~(symbol kind) ~@lambda))
+
+(defn transform-lambda
+  [args body]
+  `(fn [~@args]
+     ~body))
+
+(defn transform-fn-args
+  [& args]
+  (map symbol args))
+
+(defn transform-multi-input
+  [& inputs]
+  (vector (map symbol inputs)))
+
+(def binary-op-map {"==" '==
+                    "!=" 'not=
+                    "+" '+
+                    "-" '-
+                    "*" '*
+                    "/" '/
+                    "<" '<
+                    ">" '>
+                    "<=" '<=
+                    ">=" '>=
+                    "&&" 'and
+                    "||" 'or
+                    "!" 'not})
+
+(defn transform-binary-op
+  [op]
+  (get binary-op-map op))
+
 (def repl-transform-map
   {:number edn/read-string
    :boolean edn/read-string
    :module transform-module
    :event-def transform-event-def
+
    :value identity
    :string identity
    :address identity
+   :single-input symbol
+   :binary-op transform-binary-op
+   :multi-input transform-multi-input
+
+   :module-inputs vector
    :array-literal vector
    :key-value transform-kv
    :attributes transform-attributes
-   :literal identity})
+   :literal identity
+   :function-call transform-function-call
+   :field-access transform-field-access
+   :binary-expression transform-binary-expr
+
+   :pipeline transform-pipeline
+   :fn-args transform-fn-args
+   :lambda transform-lambda
+   :hof transform-hof
+   })
 
 (def output (parser test-code))
 
 (insta/transform
  repl-transform-map output)
 
-;modules
+;[modules module-edges]
