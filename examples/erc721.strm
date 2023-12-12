@@ -8,38 +8,9 @@ interface Erc721 {
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 }
 
-fn double_num:
-(uint) -> uint {
-       (a) => a * 2;
-       (a) => a * 2;
-       (a) => a * 2;
-}
+mfn burns = Erc721.Transfer
+    |> filter (transfer) -> transfer.address == asdfasdfasdf;
+    |> map(transfer) -> { burner: transfer.from, token: transfer.tokenId };
 
-struct SomethingElse {
-       address foo;
-}
-
-struct Burn {
-       address burner;
-       uint256 token;
-       SomethingElse bar;
-}
-
-convert:
-Erc721.Transfer -> Burn {
-    (transfer) => Burn {
-                        burner: transfer.from,
-                        token: transfer.tokenId
-                      };
-}
-
-mfn burns:
-(Erc721.Transfer[]) -> Burn[] {
-    filter (transfer) => transfer.to != address(0);
-    map (transfer) => convert(transfer, Burn);
-}
-
-mfn something_else:
-(burns) -> Burn[] {
-        (burns) => burns;
-}
+sfn addresses = [Erc721.Transfer]
+    |> map(transfer) setIfNotExists([transfer.from, true], [transfer.to, true]);

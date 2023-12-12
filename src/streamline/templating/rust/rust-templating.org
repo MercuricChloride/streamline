@@ -1,0 +1,78 @@
+#+title: Rust Templating
+
+* Function Templating
+
+So in order to generate the source code for the rust functions, we need a way to go from the AST representation of the streamline code, into the appropriate rust code.
+
+In streamline, we have 3 kinds of functions.
+1. Normal functions
+   They take in some types, and return some other type.
+2. Mfns
+   These are functions in rust, that take in the output type of their module inputs.
+   And return some other type. These are tagged with a special attribute function.
+3. Sfns
+   These are also function in rust, very similar to Mfns, however they don't output anything.
+
+** How the general streamline -> rust conversion works.
+
+The conversion of the streamline to rust code is relatively straightforward.
+
+Here is some streamline code.
+
+#+begin_src
+fn double:
+(uint) -> uint {
+   (a) => a*2;
+}
+#+end_src
+
+Here we have a function name, it's kind, and what types it inputs, as well as what type it outputs. All of this maps over just about one to one with the generated rust code.
+
+However the only weird thing is the body.
+
+In streamline, the body is read as a list of expressions applied to the input, to create the output.
+
+So in rust, the easiest way to do this is to make use of variable shadowing and create some variable that will be the output of the module, and just apply the function body's expressions repeatedly to that variable. Shadowing it each time.
+
+And if there are multiple values used in a function or expression, we will just treat the variable as a tuple of other values.
+
+So here is what the rust code should look like, roughly anyway.
+
+#+begin_src rust
+fn double(input_0: BigInt) -> BigInt {
+    // step 0, setup the output value variable
+    let output_value = (input_0);
+    // step 1, apply the first lambda to the input
+    let output_value = (|(a)| { a * 2 })(output_value);
+    // step 2, convert the output value into the output type
+    output_value.into()
+}
+#+end_src
+
+So here, the function signature looks mainly the same. With the exception that we replace the "uint" type, with a "BigInt", since this is what we are using in rust.
+
+We then setup the output value variable. So we make it's value, a tuple of some other values.
+
+Next we shadow that variable, by creating and applying the lambda in the function body, passing in the output value as the argument to the lambda.
+
+Finally, we just run a general "into()" function on the output variable value, as a general catch to handle type weirdness.
+
+** Helper functions
+These functions are responsible for actually taking in the input data, and returning a string that represents the function code. There are three kinds.
+
+*** Make fn
+#+begin_src clojure
+(defn make-mfn
+  [name inputs input-names output pipeline]
+  (pg/render-resource
+   "templates/rust/functions/mfn.mustache"
+   {:name (->snake-case name)
+    :inputs inputs
+    :input-names input-names
+    :output output
+    :body pipeline}))
+#+end_src
+
+The idea here is that the "inputs" field, denotes the resolved paths for the protobuf type of the module inputs.
+
+We also have a similar field of "input-names", which is just a list of the names, so we can bind these to variables, to later be used in the function body's expressions.

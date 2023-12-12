@@ -1,0 +1,32 @@
+stream uniswap_pools;
+
+interface Factory {
+          event PoolCreated(
+                address token0,
+                address token1,
+                uint24 fee,
+                int24 tickSpacing,
+                address pool
+          );
+}
+
+
+Factory UniV3 = Factory(0xasdfasdfasdf);
+
+struct PoolCreated {
+       address token0,
+       address token1,
+       int24 tickSpacing,
+       address pool
+};
+
+mfn only_cool_fee_numbers:
+(UniV3.PoolCreated[]) -> PoolCreated[] {
+     filter (pool_created) => pool_created.fee == uint24(69);
+     map (p) => PoolCreated {
+         token0: p.token0,
+         token1: p.token1,
+         tickSpacing: p.tickSpacing,
+         pool: p.pool,
+     };
+}
