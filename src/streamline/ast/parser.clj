@@ -122,8 +122,49 @@ interface Erc721 {
 }
 
 mfn burns = erc721_transfers
-|> filter (transfer) => transfer.address == 69;
+  |> filter (transfer) => transfer.address == 69;
 ")
 
+(def modules (atom #{}))
 
-(parser test-code)
+(def module-edges (atom []))
+
+(defn transform-module
+  [kind ident inputs pipeline]
+  (swap! modules conj ident)
+  `(defn ~(symbol ident)
+     [~@inputs]
+     ~pipeline))
+
+(defn transform-event-def
+  [{:keys [:mfn :addresses]} & _]
+  `(defn ~(symbol mfn)
+     ))
+
+(defn transform-attributes
+  [& attributes]
+  (reduce merge attributes))
+
+(defn transform-kv
+  [key value]
+  {(keyword key) value})
+
+(def repl-transform-map
+  {:number edn/read-string
+   :boolean edn/read-string
+   :module transform-module
+   :event-def transform-event-def
+   :value identity
+   :string identity
+   :address identity
+   :array-literal vector
+   :key-value transform-kv
+   :attributes transform-attributes
+   :literal identity})
+
+(def output (parser test-code))
+
+(insta/transform
+ repl-transform-map output)
+
+;modules
