@@ -1,16 +1,22 @@
 stream minimal_erc721;
 
 interface Erc721 {
+    #[mfn = "erc721_transfers"]
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
 
+    #[mfn = "erc721_approvals"]
     event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
 
+    #[mfn = "erc721_approval_for_alls"]
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 }
 
-mfn burns = Erc721.Transfer
-    |> filter (transfer) -> transfer.address == asdfasdfasdf;
-    |> map(transfer) -> { burner: transfer.from, token: transfer.tokenId };
+fn double =
+    (num) => num * 2;
+
+mfn burns = erc721_transfers
+    |> filter (transfer) => transfer.address == asdfasdfasdf;
+    |> map (transfer) => { burner: transfer.from, token: transfer.tokenId };
 
 sfn addresses = [Erc721.Transfer]
-    |> map(transfer) setIfNotExists([transfer.from, true], [transfer.to, true]);
+    |> map(transfer) => setIfNotExists([transfer.from, true], [transfer.to, true]);

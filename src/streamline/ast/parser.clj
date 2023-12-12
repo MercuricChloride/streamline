@@ -6,7 +6,7 @@
 
 (def parser
   (insta/parser
-   "<S> = file-meta import-statement* (module / struct-def / interface-def / fn-def / contract-instance / conversion)*
+   "<S> = file-meta import-statement* (module /interface-def / fn-def / contract-instance )*
 
     file-meta = file-type identifier <';'>
     <file-type> = 'stream' / 'sink'
@@ -19,35 +19,28 @@
     hof = parent-function lambda
     fn-args = identifier*
     <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
-    pipeline = (lambda / hof)*
+    pipeline = (pipe (lambda / hof))*
+    pipe = '|>'
 
-    conversion = <'convert:'> type <'->'> type <'{'> pipeline <'}'>
+    <expression> = (literal /  function-call / binary-expression / field-access / identifier)
 
-    <expression> = (literal / convert / function-call / binary-expression / field-access / identifier)
-
-    literal = (number / string / boolean / address / array-literal / struct-literal )
+    literal = (address / number / string / boolean / array-literal)
 
     binary-expression = expression binary-op expression
     binary-op = ('+' / '-' / '*' / '/' / '==' / '!=' / '<' / '>' / '<=' / '>=' / '&&' / '||' / '!')
 
-    struct-literal = identifier <'{'> struct-literal-field* <'}'>
-    struct-literal-field = identifier <':'> expression <','>?
     array-literal = <'['> expression* <']'>
 
-    convert = <'convert'> <'('> identifier type <')'>
-    function-call = !convert identifier <'('> expression* <')'>
+    function-call = identifier <'('> expression* <')'>
 
     field-access = expression (<'.'> identifier)+
 
-    module = module-type identifier <':'> module-signature <'{'> pipeline  <'}'>
+    module = module-type identifier <'='> module-inputs pipeline
     <module-type> = 'mfn' | 'sfn'
-    module-signature = map-module-signature / store-module-signature
-    <map-module-signature> = <'('> module-inputs <')'> <'->'> module-output
-    <store-module-signature> = <'('> module-inputs <')'> <'->'> store-update-policy
     <store-update-policy> = ('Set' / 'SetNotExists' / 'Add' / 'Min' / 'Max') <'('> (type) <')'>
-    module-inputs = ( event-array / chained-module )*
-    chained-module = identifier
-    module-output = type
+    module-inputs = ( multi-input / single-input )
+    single-input = identifier
+    multi-input = <'['> identifier+ <']'>
 
     fn-def = <'fn'> identifier <':'> fn-signature <'{'> pipeline <'}'>
     fn-signature = <'('> fn-inputs <')'> <'->'> type
@@ -60,7 +53,7 @@
 
     interface-def = <'interface'> identifier <'{'> ((event-def / function-def) <';'>)* <'}'>
 
-    event-def = <'event'> identifier <'('> event-param* <')'>
+    event-def = attributes <'event'> identifier <'('> event-param* <')'>
     <event-param> = (indexed-event-param / non-indexed-event-param)
     indexed-event-param = type <'indexed'> identifier
     non-indexed-event-param = type identifier
@@ -78,6 +71,11 @@
     <return-param> = (named-return / unnamed-return)
     unnamed-return = type <location?>
     named-return = type <location?> identifier
+
+    attributes = (<'#['> key-value* <']'> / '')
+    key-value = key <'='> value
+    <key> = 'mfn' / 'addresses'
+    value = literal
 
     <identifier> = #'[a-zA-Z$_][a-zA-Z0-9$_]*'
     fully-qualified-identifier = identifier (<'.'> identifier)+
@@ -109,3 +107,23 @@
       (insta/transform
        expr-transform-map
        output))))
+
+(def test-code "
+stream foo;
+
+interface Erc721 {
+    #[mfn = \"erc721_transfers\",
+      addresses = [0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d]]
+    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+    #[mfn = \"erc721_approvals\"]
+    event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
+    #[mfn = \"erc721_approval_for_alls\"]
+    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+}
+
+mfn burns = erc721_transfers
+|> filter (transfer) => transfer.address == 69;
+")
+
+
+(parser test-code)

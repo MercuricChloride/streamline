@@ -10,16 +10,8 @@ stream minimal_erc721;
 
 interface Erc721 {
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
-
     event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
 }
-
-struct Burn {
-       address burner;
-       uint256 token;
-       SomethingElse bar;
-}
-
 ")
 
 (def w-function (str simple-test-file "
