@@ -18,5 +18,7 @@
                  [pogonos "0.2.1"]
                  [clj-commons/clj-yaml "1.0.27"]
                  [compojure "1.7.0"]
-                 [http-kit "2.7.0"]]
+                 [http-kit "2.7.0"]
+                 [ring/ring-json "0.5.1"]
+                 [nrepl "1.1.0"]]
   :profiles {:uberjar {:aot :all}})

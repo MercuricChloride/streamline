@@ -214,11 +214,16 @@ mfn burns = erc721_transfers
   [op]
   (get binary-op-map op))
 
+(defn transform-file-meta
+  [_kind ident]
+  `(in-ns ~(str ident)))
+
 (def repl-transform-map
   {:number edn/read-string
    :boolean edn/read-string
    :module transform-module
    :event-def transform-event-def
+   :file-meta transform-file-meta
 
    :value identity
    :string identity
@@ -244,6 +249,10 @@ mfn burns = erc721_transfers
 
 (def output (parser test-code))
 
-
-;; (eval (macroexpand-all (nth (insta/transform
-;;                              repl-transform-map output) 2)))
+(defn streamline->clj
+  [source]
+  (->> source
+       parser
+       (insta/transform repl-transform-map)
+       macroexpand-all
+       doall))

@@ -1,42 +1,38 @@
-(ns streamline.repl)
+(ns streamline.repl
+  (:require
+   [compojure.core :refer [defroutes GET POST]]
+   [compojure.route :as route]
+   [nrepl.core :as nrepl]
+   [nrepl.server :refer [start-server]]
+   [org.httpkit.server :refer [run-server]]
+   [ring.middleware.json :refer [wrap-json-body]]
+   [ring.util.response :as response]
+   [streamline.ast.parser :refer [streamline->clj]])
+  (:gen-class))
 
-(defmulti eval-expr :expression-type)
+(def nrepl-port 7869)
 
-(defmethod eval-expr :identifier
-    [input]
-    (eval (symbol (:ident input))))
+(defn startup-nrepl
+  [code]
+  (with-open [conn (nrepl/connect :port nrepl-port)]
+    (-> (nrepl/client conn 1000)
+        (nrepl/message {:op "eval" :code (str code)})
+        nrepl/response-values
+        str)))
 
-(defmethod eval-expr :number
-    [input]
-    (Integer/parseInt (:number input)))
+(defn handler [request]
+  (let [src (str (get-in request [:body "src"]))
+        clj (reduce str (streamline->clj src))]
+    (response/response clj)))
 
-(defmethod eval-expr :function-call
-    [input]
-    (let [function-name (:function-name input)
-          args (:args input)]
-        (apply (eval-expr function-name) (map eval-expr args))))
+(defroutes app
+  (GET "/" [] "Hello World")
+  (POST "/nrepl" [] (wrap-json-body handler))
+  (route/not-found "Not Found"))
 
-(defmacro step->
-  "Like as->, but only performs the first COUNT forms"
-  [expr count & forms]
-  (let [forms (take count forms)]
-    `(->> ~expr ~@forms)))
-
-(step-> [1 2 3 4] 1
-        (map inc)
-        (filter even?)
-        (map inc))
-
-;; (defn module?
-;;   "Tests if an AST node is a module-def"
-;;   [node]
-;;   (= (first node) :module))
-
-
-;; (def modules (map ->map-module (rest ast)))
-
-;; (let [[_ type ident sig body] (first (rest ast))
-;;       [_ & lambdas] body]
-;;   (map hof? lambdas))
-
-;(->map-module (first  (rest ast)))
+(defn repl-init
+  "Starts up the nrepl server, as well as the api to interact with the server"
+  []
+  (start-server :port nrepl-port)
+  (run-server app {:port 8080})
+  (println "Running server on port 8080"))
