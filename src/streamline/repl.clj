@@ -22,7 +22,7 @@
 
 (defn handler [request]
   (let [src (str (get-in request [:body "src"]))
-        clj (reduce str (streamline->clj src))]
+        clj (streamline->clj src)]
     (response/response clj)))
 
 (defroutes app

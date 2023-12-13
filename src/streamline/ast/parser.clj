@@ -150,6 +150,7 @@ mfn burns = erc721_transfers
   [{:keys [:mfn :addresses]} & _]
   (swap! modules conj mfn)
   `(defn ~(symbol mfn)
+     []
      ))
 
 (defn transform-attributes
@@ -216,13 +217,19 @@ mfn burns = erc721_transfers
 
 (defn transform-file-meta
   [_kind ident]
-  `(in-ns ~(str ident)))
+  `(ns ~(symbol ident)))
+
+(defn transform-interface-def
+  [name & rest]
+  `((ns ~(symbol name))
+    ~@rest))
 
 (def repl-transform-map
   {:number edn/read-string
    :boolean edn/read-string
    :module transform-module
    :event-def transform-event-def
+   :interface-def transform-interface-def
    :file-meta transform-file-meta
 
    :value identity
@@ -254,5 +261,9 @@ mfn burns = erc721_transfers
   (->> source
        parser
        (insta/transform repl-transform-map)
-       macroexpand-all
-       doall))
+       ;macroexpand-all
+       doall
+       (conj ())
+       ))
+
+(streamline->clj test-code)
