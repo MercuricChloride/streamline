@@ -5,3 +5,4 @@ package streamline.api;
 import "sf/substreams/rpc/v2/service.proto";
 import "sf/substreams/v1/package.proto";
 import "sf/firehose/v2/firehose.proto";
+import "sf/ethereum/type/v2/type.proto";

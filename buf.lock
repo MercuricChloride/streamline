@@ -8,6 +8,11 @@ deps:
     digest: shake256:9b4f326100a1db03f5cd406fa6aec43a35b770fb98b92e64f324d1ca290547338c3805b1fd9789e43c93f6c28b01ce9af9ea1b7c8ece45817efe68497ea19237
   - remote: buf.build
     owner: streamingfast
+    repository: firehose-ethereum
+    commit: dafa9c7f93374fe681a86f2ff47b269f
+    digest: shake256:6901c9186d0eee684119bf494dfbbe939a8389da2d4110c7b35f2502105b8448602cac1642f2fc37d3fa1c76d6bfb573b66b332100bbc243adc61c512f85ae02
+  - remote: buf.build
+    owner: streamingfast
     repository: substreams
     commit: 670c1d6a7da74fe289cfad6521664fb2
     digest: shake256:6c207035a447ec00cd7b6814da472caf1e49506755b240371039b743250775af40e5d8c440c5af346a07305f5abf3af41919668f8aad964e9ed10d7d30bbd9ad

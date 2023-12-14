@@ -20,5 +20,9 @@
                  [compojure "1.7.0"]
                  [http-kit "2.7.0"]
                  [ring/ring-json "0.5.1"]
-                 [nrepl "1.1.0"]]
+                 [nrepl "1.1.0"]
+                 [io.github.protojure/core "2.0.1"]
+                 [io.github.protojure/google.protobuf "2.0.0"]
+                 [lynxeyes/dotenv "1.1.0"]
+                 [io.github.protojure/grpc-client "2.0.1"]]
   :profiles {:uberjar {:aot :all}})

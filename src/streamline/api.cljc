@@ -9,6 +9,7 @@
             [protojure.protobuf.serdes.complex :as serdes.complex]
             [protojure.protobuf.serdes.utils :refer [tag-map]]
             [protojure.protobuf.serdes.stream :as serdes.stream]
+            [sf.ethereum.type.v2 :as sf.ethereum.type.v2]
             [sf.firehose.v2 :as sf.firehose.v2]
             [sf.substreams.v1 :as sf.substreams.v1]
             [sf.substreams.rpc.v2 :as sf.substreams.rpc.v2]
