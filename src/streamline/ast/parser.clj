@@ -2,86 +2,95 @@
   (:require
    [clojure.edn :as edn]
    [clojure.pprint :as pprint]
-   [clojure.walk :refer [macroexpand-all]]
    [instaparse.core :as insta]))
 
 (def parser
   (insta/parser
-   "<S> = file-meta import-statement* (module /interface-def / fn-def / contract-instance )*
+   "<S> = file-meta import-statement* top-level-interaction*
 
     file-meta = file-type identifier <';'>
     <file-type> = 'stream' / 'sink'
 
+    top-level-interaction = instance-def / module-def
+
+    (* ================= *)
+    (* IMPORT STATEMENTS *)
+    (* ================= *)
     import-statement = (normal-import / import-as)
     normal-import = <'import'> string <';'>
     import-as = <'import'> string <'as'> identifier <';'>
 
-    lambda = <'('> fn-args <')'> <'=>'> (expression <';'>)
+    (* ================= *)
+    (* MODULE THINGS     *)
+    (* ================= *)
+    module-def = attributes ( mfn-def / sfn-def / fn-def )
+
+    mfn-def = <'mfn'> identifier <'='> module-inputs pipeline
+    sfn-def = <'sfn'> identifier <'='> module-inputs pipeline
+    fn-def = <'fn'> identifier <'='> module-inputs pipeline
+
+    module-inputs = ( multi-input / single-input )
+    store-deltas = identifier <'.'> <'deltas'>
+    single-input = ( store-deltas / identifier)
+    multi-input = <'['> single-input+ <']'>
+
+    (* =================  *)
+    (* CONTRACT INSTANCES *)
+    (* =================  *)
+    instance-def = identifier <'='> identifier <'('> address <')'> <';'>
+
+    (* =================  *)
+    (* FUNCTION THINGS    *)
+    (* =================  *)
+    lambda = <'('> fn-args <')'> <'=>'> expression <';'>
     hof = parent-function lambda
     fn-args = identifier*
     <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
-    pipeline = (pipe (lambda / hof))*
-    pipe = '|>'
+    pipeline = (pipe (hof / lambda))*
+    <pipe> = <'|>'>
 
-    <expression> = (literal /  function-call / binary-expression / field-access / identifier)
+    (* =================  *)
+    (* EXPRESSIONS        *)
+    (* =================  *)
+    <expression> = do-block / literal / rpc-call /function-call / var-assignment / binary-expression / field-access / identifier
 
-    literal = (address / number / string / boolean / array-literal)
+    do-block = <'do'> <'{'> (expression <';'>)* expression <'}'>
+    <literal> = (map-literal / list-literal / tuple-literal / address / number / string / boolean)
 
-    binary-expression = expression binary-op expression
-    binary-op = ('+' / '-' / '*' / '/' / '==' / '!=' / '<' / '>' / '<=' / '>=' / '&&' / '||' / '!')
+    var-assignment = identifier <'='> expression (* used to assign local mutable *)
 
-    array-literal = <'['> expression* <']'>
+    store-interaction = store-set / store-get / store-delete
+    store-get = 'get' <'('> identifier expression <')'> (* get(ident, key) *)
+    store-set = 'set' <'('> expression expression <')'> (* set(key, value) *)
+    store-delete = 'delete' <'('> expression <')'> (* delete(key-prefix) *)
+
+    binary-expression = expression binary-op expression (* 1 + 2 *)
+    binary-op = ('+' / '-' / '*' / '/' / '==' / '!=' / '<' / '>' / '<=' / '>=' / '&&' / '||')
 
     function-call = identifier <'('> expression* <')'>
+    (* RPC CALLS ARE OF THE FORM: *)
+    (* INSTANCE.FN-NAME(ARGS...) *)
+    rpc-call = <'#'> identifier <'.'> identifier <'('> expression* <')'> <'#'>
 
-    field-access = expression (<'.'> identifier)+
+    (* NOTE This is an ident or number because we use field access for list indexing *)
+    field-access = expression (<'.'> (identifier / number))+
 
-    module = module-type identifier <'='> module-inputs pipeline
-    <module-type> = 'mfn' | 'sfn'
-    <store-update-policy> = ('Set' / 'SetNotExists' / 'Add' / 'Min' / 'Max') <'('> (type) <')'>
-    module-inputs = ( multi-input / single-input )
-    single-input = identifier
-    multi-input = <'['> identifier+ <']'>
+    (* =================  *)
+    (* ATTRIBUTES         *)
+    (* =================  *)
+    attributes = attribute*
+    attribute = kv-attribute / value-attribute / tag-attribute
+    tag-attribute = '@' identifier
+    kv-attribute = '@' identifier identifier <'='> expression
+    value-attribute = '@' identifier <'='> expression
 
-    fn-def = <'fn'> identifier <':'> fn-signature <'{'> pipeline <'}'>
-    fn-signature = <'('> fn-inputs <')'> <'->'> type
-    fn-inputs = type*
-
-    contract-instance = type identifier <'='> type <'('> address <')'> <';'>
-
-    struct-def = <'struct'> identifier <'{'> (struct-field <';'>)* <'}'>
-    struct-field = type identifier ('[' ']')?
-
-    interface-def = <'interface'> identifier <'{'> ((event-def / function-def) <';'>)* <'}'>
-
-    event-def = attributes <'event'> identifier <'('> event-param* <')'>
-    <event-param> = (indexed-event-param / non-indexed-event-param)
-    indexed-event-param = type <'indexed'> identifier
-    non-indexed-event-param = type identifier
-
-    <function-def> = (function-w-return / function-wo-return)
-    function-w-return = <'function'> identifier <'('> function-params <')'> <function-modifier*> returns
-    function-wo-return = <'function'> identifier <'('> function-params <')'> <function-modifier*>
-    function-params = function-param*
-    function-param = type <location?> identifier
-    location = 'memory' / 'storage' / 'calldata'
-    function-modifier = visibility / mutability
-    visibility = 'public' / 'private' / 'internal' / 'external'
-    mutability = 'view' / 'pure'
-    returns = <'returns'> <'('> return-param* <')'>
-    <return-param> = (named-return / unnamed-return)
-    unnamed-return = type <location?>
-    named-return = type <location?> identifier
-
-    attributes = (<'#['> key-value* <']'> / '')
-    key-value = key <'='> value
-    <key> = 'mfn' / 'addresses'
-    value = literal
-
-    <identifier> = #'[a-zA-Z$_][a-zA-Z0-9$_]*'
-    fully-qualified-identifier = identifier (<'.'> identifier)+
-    event-array = identifier <'.'> identifier '[]'
-    <type> = ( type '[]' / fully-qualified-identifier / identifier)
+    (* =================  *)
+    (* LITERALS           *)
+    (* =================  *)
+    list-literal = <'['> expression* <']'>
+    tuple-literal = <'('> expression* <')'>
+    map-literal = <'{'> (identifier <':'> expression)* <'}'>
+    identifier = #'[a-zA-Z$_][a-zA-Z0-9$_]*'
     number = #'[0-9]+'
     string = <'\"'> #'[^\"\\n]*' <'\"'>
     boolean = 'true' / 'false'
@@ -105,25 +114,94 @@
         (pprint/pprint failure)
         (println "\n\n\n")
         (throw (Exception. (str "Failed to parse streamline file: " path "\n" failure))))
-      (insta/transform
-       expr-transform-map
-       output))))
+      ;; (insta/transform
+      ;;  expr-transform-map
+      ;;  output)
+      output)))
+
+;; (def test-code "
+;; stream foo;
+;; import \"ERC20.sol\";
+;; import \"interfaces/Blur.sol\";
+
+;; bayc = ERC721(0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D);
+;; milady = ERC721(0x5Af0D9827E0c53E4799BB226655A1de152A425a5);
+;; blur = Blur(0x000000000000Ad05Ccc4F10045630fb830B95127);
+;; azuki = ERC721(0xED5AF388653567Af2F388E6224dC7C4b3241C544);
+
+;; mfn miladyTransfers = EVENTS
+;;     |> (events) => events.milady.Transfer;
+;;     |> map (t) => { foo: 123 };
+
+;; mfn smolBayc = EVENTS
+;;     |> (events) => events.bayc.Transfer;
+;;     |> map (t) => t._tokenId;
+
+;; mfn baycTransfers = EVENTS
+;;     |> (events) => events.bayc.Transfer;
+;;     |> map (transfer) => {
+;;        epicToken: transfer._tokenId,
+;;        greeting: \"Hello!\",
+;;        advancedGreeting: \"Hello\" + \" World!\",
+;;        stringComp: \"Hello\" > \"World!\",
+;;        num: 42 + 15 + transfer._tokenId,
+;;        numberComp: 42 > 10,
+;;        divTest: 42 / 15,
+;;        mulTest: 42 * 15,
+;;        subTest: 42 - 15,
+;;        compareTest: 42 == 42,
+;;        foo: true,
+;;        addr: 0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D,
+;;        addrCompare: 0x5Af0D9827E0c53E4799BB226655A1de152A425a5 == 0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D,
+;;        baycEqual: 0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D == 0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D,
+;;        tuple: (1, 2, 3),
+;;        list: [1, 2, [3,4,[5,6]]],
+;;        listAccess: [1, 2, 3].0,
+;;        doBlock: do{
+;;            123 + 123;
+;;            69
+;;        },
+;;        rpcTest: #milady.ownerOf(transfer._tokenId)#
+;;     };
+
+;; mfn blurTrades = EVENTS
+;;     |> (events) => events.blur.OrdersMatched;
+
+;; mfn comp = [miladyTransfers, smolBayc]
+;;     |> (milady, smol) => {
+;;        milady: milady,
+;;        smol: smol
+;;     };
+
+;; mfn helloJordan = [EVENTS, baycTransfers]
+;;     |> (events, transfers) => events.blur.OrdersMatched;
+;;     |> map (order) => {
+;;        maker: order.maker,
+;;        taker: order.taker,
+;;        epic: order.sellHash
+;;     };
+
+;; @immutable
+;; sfn storeAzukiOwners = EVENTS
+;;     |> (events) => events.azuki.Transfer;
+;;     |> map (t) => set(t._tokenId, t._to);
+
+;; mfn mapAzukiOwnerChanges = storeAzukiOwners.deltas
+;;     |> (deltas) => deltas;
+
+;; mfn azukiTransfers = EVENTS
+;;     |> (events) => events.azuki.Transfer;
+;; ")
 
 (def test-code "
 stream foo;
+import \"ERC20.sol\";
 
-interface Erc721 {
-    #[mfn = \"erc721_transfers\",
-      addresses = [0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d]]
-    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
-    #[mfn = \"erc721_approvals\"]
-    event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
-    #[mfn = \"erc721_approval_for_alls\"]
-    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
-}
+milady = ERC721(0x5Af0D9827E0c53E4799BB226655A1de152A425a5);
 
-mfn burns = erc721_transfers
-  |> filter (transfer) => transfer.address == 69;
+mfn miladyTransfers = EVENTS
+    |> (events) => events.milady.Transfer;
+    |> map (t) => { foo: 123 };
 ")
 
 (def modules (atom #{}))
@@ -134,6 +212,56 @@ mfn burns = erc721_transfers
   [inputs module-name]
   (for [input inputs]
     (swap! module-edges conj {:from input :to module-name})))
+
+(defmacro with-attributes
+  "Transforms the streamline code, into valid clojure code, using context from the attributes"
+  [_attributes & forms]
+  `(do
+     ~@forms))
+
+(defmulti ->clj first)
+
+(defmacro generate-clj
+  {:clj-kondo/lint-as 'clojure.core/defn}
+  [fields]
+  `(vec ~(map #(list (symbol %) (->clj %)) (list* fields))))
+
+(defmacro defclj
+  "Like defmethod, but applies ->clj to all of the module, as well as removes the first hiccup identifier"
+  {:clj-kondo/lint-as 'clojure.core/defn}
+  [case fields body]
+  `(defmethod ->clj ~case
+     [~(vec (list* '_ fields))]
+     ~body))
+
+(defmethod ->clj :default
+  [_]
+  nil)
+
+(defmethod ->clj :top-level-interaction
+  [[_ interaction]]
+  (->clj interaction))
+
+(defmethod ->clj :identifier
+  [[_ ident]]
+  (symbol ident))
+
+(defmethod ->clj :module-def
+  [[_ attributes module]]
+  (with-attributes attributes (->clj module)))
+
+(defmethod ->clj :mfn-def
+  [[_ name inputs pipeline]]
+  `(defn ~(->clj name)
+     []
+     "Hello from nrepl!"))
+
+;; (defclj :mfn-def
+;;   [name inputs pipeline]
+;;   `(defn ~name ~inputs
+;;      ~pipeline))
+
+;; (->clj [:mfn-def "asdf" [:inputs "a" "b" "c"] [:pipeline]])
 
 (defn transform-module
   [kind ident inputs pipeline]
@@ -150,8 +278,7 @@ mfn burns = erc721_transfers
   [{:keys [:mfn :addresses]} & _]
   (swap! modules conj mfn)
   `(defn ~(symbol mfn)
-     []
-     ))
+     []))
 
 (defn transform-attributes
   [& attributes]
@@ -251,19 +378,20 @@ mfn burns = erc721_transfers
    :pipeline transform-pipeline
    :fn-args transform-fn-args
    :lambda transform-lambda
-   :hof transform-hof
-   })
-
-(def output (parser test-code))
+   :hof transform-hof})
 
 (defn streamline->clj
   [source]
-  (->> source
-       parser
-       (insta/transform repl-transform-map)
-       ;macroexpand-all
-       doall
-       (conj ())
-       ))
+  (as-> source t
+       (parser t)
+       (map ->clj t)
+       (filter #(not (nil? %)) t)
+       (doall t)
+       t))
 
-(streamline->clj test-code)
+;; mfn foo = a
+;;     |> (a) => a * 2;
+
+;;(streamline->clj test-code)
+
+;(parser test-code)
