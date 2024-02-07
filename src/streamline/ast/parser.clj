@@ -45,7 +45,7 @@
     lambda = <'('> fn-args <')'> <'=>'> expression <';'>
     hof = parent-function lambda
     fn-args = identifier*
-    <parent-function> = ('filter' / 'map' / 'reduce' / 'apply')
+    parent-function = ('filter' / 'map' / 'reduce' / 'apply')
     pipeline = (pipe (hof / lambda))*
     <pipe> = <'|>'>
 
@@ -228,40 +228,135 @@ mfn miladyTransfers = EVENTS
 
 (defmacro defclj
   "Like defmethod, but applies ->clj to all of the module, as well as removes the first hiccup identifier"
+  {:clj-kondo/ignore [:unresolved-symbol]}
+  ([case fields]
+   (let [formatted-inputs# (mapcat #(list '->clj %) fields)]
+     `(defmethod ->clj ~case
+        [~(vec (list* '_ fields))]
+        ~formatted-inputs#)))
+  ([case fields body]
+   (let [formatted-inputs# (vec (mapcat #(list (symbol %) (list '->clj %)) fields))]
+     `(defmethod ->clj ~case
+        [~(vec (list* '_ fields))]
+        (let ~formatted-inputs#
+         ~body)))))
+
+
+(defmacro defclj*
+  "Like defclj, but doesn't apply ->clj to it's args"
   {:clj-kondo/lint-as 'clojure.core/defn}
-  [case fields body]
-  `(defmethod ->clj ~case
-     [~(vec (list* '_ fields))]
-     ~body))
+  ([case fields body]
+   `(defmethod ->clj ~case
+         [~(vec (list* '_ fields))]
+         ~body)))
+
+;; NOTE This is a dynamic variable that tells us if we are in a higher order function or not
+;; This dictates whether or not to generate a lambda with the apply keyword, or just the lambda
+(def ^:dynamic in-hof? false)
 
 (defmethod ->clj :default
   [_]
   nil)
 
-(defmethod ->clj :top-level-interaction
-  [[_ interaction]]
-  (->clj interaction))
+(defclj :top-level-interaction
+  [interaction])
 
-(defmethod ->clj :identifier
-  [[_ ident]]
+(defclj :module-inputs
+  [input])
+
+(defclj :single-input
+  [input]
+  [input])
+
+(defmethod ->clj :multi-input
+  [[_ & inputs]]
+  (vec (mapcat ->clj inputs)))
+
+(defclj* :identifier
+  [ident]
   (symbol ident))
 
-(defmethod ->clj :module-def
-  [[_ attributes module]]
-  (with-attributes attributes (->clj module)))
+(defclj :module-def
+  [attributes module]
+  (with-attributes attributes module))
 
-(defmethod ->clj :mfn-def
-  [[_ name inputs pipeline]]
-  `(defn ~(->clj name)
-     []
-     "Hello from nrepl!"))
+(defclj :mfn-def
+  [name inputs pipeline]
+  `(defn ~name
+     [~@inputs]
+     (->> (list ~@inputs)
+      ~@pipeline)))
 
-;; (defclj :mfn-def
-;;   [name inputs pipeline]
-;;   `(defn ~name ~inputs
-;;      ~pipeline))
+(defclj :sfn-def
+  [name inputs pipeline]
+  `(defn ~name
+     [~@inputs]
+     (->> (list ~@inputs)
+      ~@pipeline)))
 
-;; (->clj [:mfn-def "asdf" [:inputs "a" "b" "c"] [:pipeline]])
+(defclj :fn-def
+  [name inputs pipeline]
+  `(defn ~name
+     [~@inputs]
+     (->> (list ~@inputs)
+        ~@pipeline)))
+
+(defmethod ->clj :pipeline
+  [[_ & applications]]
+  (map ->clj applications))
+
+;; (defclj :pipeline
+;;   [pipeline])
+
+;; (defclj :lambda
+;;   [args expression]
+;;   `(apply (fn [~@args] ~expression)))
+
+(defclj :lambda
+  [args expression]
+  (if in-hof?
+    `(fn [~@args] ~expression)
+    `(apply (fn [~@args] ~expression))))
+
+(defclj* :hof
+  [kind lambda]
+  (binding [in-hof? true]
+    (let [kind (->clj kind)
+          lambda (->clj lambda)]
+        `(~kind ~lambda))))
+
+(defclj* :parent-function
+  [kind]
+  (symbol kind))
+
+(defmethod ->clj :fn-args
+  [[_ & args]]
+  (map ->clj args))
+
+(defmethod ->clj :list-literal
+  [[_ & items]]
+  `(list ~@(map ->clj items)))
+(defmethod ->clj :list-literal
+  [[_ & items]]
+  `(list ~@(map ->clj items)))
+
+
+(defclj* :number
+  [num]
+  (edn/read-string num))
+
+(defclj* :string
+  [string]
+  (str string))
+
+(defclj* :boolean
+  [bool]
+  (edn/read-string bool))
+
+;; (defmethod ->clj :do-block
+;;   [[_ & exprs]]
+;;   `(do exprs))
+
 
 (defn transform-module
   [kind ident inputs pipeline]
@@ -388,10 +483,3 @@ mfn miladyTransfers = EVENTS
        (filter #(not (nil? %)) t)
        (doall t)
        t))
-
-;; mfn foo = a
-;;     |> (a) => a * 2;
-
-;;(streamline->clj test-code)
-
-;(parser test-code)

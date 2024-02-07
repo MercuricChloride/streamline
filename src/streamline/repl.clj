@@ -1,12 +1,10 @@
 (ns streamline.repl
   (:require
-   [nrepl.core :as nrepl]
    [nrepl.middleware :refer [set-descriptor!]]
-   [nrepl.middleware.session :refer [session]]
    [nrepl.misc :refer [response-for]]
    [nrepl.server :refer [start-server]]
    [nrepl.transport :as t]
-   [streamline.ast.parser :refer [streamline->clj]])
+   [streamline.ast.parser :refer [parser streamline->clj]])
   (:gen-class))
 
 (def nrepl-port 7869)
@@ -39,16 +37,6 @@
                              :optional {}
                              :returns {"expansion" "The expanded clojure code to eval"}}}})
 
-(defn startup-nrepl
-  ([code]
-   (startup-nrepl code nrepl-port))
-  ([code port]
-   (with-open [conn (nrepl/connect :port port)]
-     (-> (nrepl/client conn 1000)
-         (nrepl/message {:op "streamline-eval" :code (str code)})
-         nrepl/response-values
-         str))))
-
 ;; (defn handler [request]
 ;;   (let [src (str (get-in request [:body "src"]))
 ;;         clj (streamline->clj src)]
@@ -67,21 +55,16 @@
    (start-server :port port :handler (nrepl.server/default-handler #'custom-eval-middleware))
    (println "SERVER STARTED!")))
 
-(var custom-eval-middleware)
-
 ;(stop-server :port nrepl-port)
 ;(start-server :port nrepl-port)
 (def test-code "
 stream asdf;
 mfn foo = a
-    |> (a) => a * 2;
-
-mfn asdf = a
-    |> (a) => a * 2;
+    |> (a) => [1, \"asdf\", false];
+    |> map (a) => 42;
 ")
+(parser test-code)
 (def to-clj (streamline->clj test-code))
-;(pr-str to-clj)
+to-clj
 ;(map eval to-clj)
-;;(repl-init)
-;(startup-nrepl test-code 12345)
-;(startup-nrepl "(foo 2)" 12345)
+;;(foo 10)
