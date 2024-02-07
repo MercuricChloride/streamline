@@ -60,11 +60,15 @@
 (def test-code "
 stream asdf;
 mfn foo = a
-    |> (a) => [1, \"asdf\", false];
-    |> map (a) => 42;
+    |> (a) => [1 2 3];
+    |> map (a) => do{
+        a + 2;
+        a + 3;
+        inc(69)
+    };
 ")
 (parser test-code)
+
 (def to-clj (streamline->clj test-code))
-to-clj
-;(map eval to-clj)
-;;(foo 10)
+(map eval to-clj)
+(foo 10)

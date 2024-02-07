@@ -353,9 +353,25 @@ mfn miladyTransfers = EVENTS
   [bool]
   (edn/read-string bool))
 
-;; (defmethod ->clj :do-block
-;;   [[_ & exprs]]
-;;   `(do exprs))
+(defclj* :binary-op
+  [op]
+  (cond
+    (= "||" op) `or
+    (= "&&" op) `and
+    :else (symbol op)))
+
+(defclj :binary-expression
+  [lh op rh]
+  `(~op ~lh ~rh))
+
+(defclj :function-call
+  [function args]
+  `(apply ~function (list ~args)))
+
+(defmethod ->clj :do-block
+  [[_ & exprs]]
+  (let [exprs (map ->clj exprs)]
+    `(do ~@exprs)))
 
 
 (defn transform-module
