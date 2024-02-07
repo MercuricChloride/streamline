@@ -6,7 +6,7 @@
 
 (def parser
   (insta/parser
-   "<S> = file-meta import-statement* top-level-interaction*
+   "<S> = file-meta? import-statement* top-level-interaction*
 
     file-meta = file-type identifier <';'>
     <file-type> = 'stream' / 'sink'
@@ -54,7 +54,7 @@
     (* =================  *)
     <expression> = do-block / literal / rpc-call /function-call / var-assignment / binary-expression / field-access / identifier
 
-    do-block = <'do'> <'{'> (expression <';'>)* expression <'}'>
+    do-block = <'do'> <'{'> (expression <';'>)* <'}'>
     <literal> = (map-literal / list-literal / tuple-literal / address / number / string / boolean)
 
     var-assignment = identifier <'='> expression (* used to assign local mutable *)

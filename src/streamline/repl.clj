@@ -58,17 +58,15 @@
 ;(stop-server :port nrepl-port)
 ;(start-server :port nrepl-port)
 (def test-code "
-stream asdf;
 mfn foo = a
-    |> (a) => [1 2 3];
-    |> map (a) => do{
-        a + 2;
-        a + 3;
-        inc(69)
-    };
+    |> map (a) => inc(a);
+
+mfn bar = a
+    |> (a) => foo(a);
+    |> map (item) => inc(item);
 ")
 (parser test-code)
 
 (def to-clj (streamline->clj test-code))
 (map eval to-clj)
-(foo 10)
+(foo '(1 2 3))
