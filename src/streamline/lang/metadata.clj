@@ -1,4 +1,4 @@
-(ns streamline.ast.metadata
+(ns streamline.lang.metadata
   (:require
    [camel-snake-kebab.core :as csk]
    [clojure.pprint :as pprint]

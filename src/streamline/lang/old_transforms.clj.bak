@@ -1,0 +1,232 @@
+(defn try-parse
+  [path]
+  (let [output (parser (slurp path))]
+    (if-let [failure (insta/get-failure output)]
+      (do
+        (println "FAILED TO PARSE STREAMLINE FILE: " path "\n\n\n")
+        (pprint/pprint failure)
+        (println "\n\n\n")
+        (throw (Exception. (str "Failed to parse streamline file: " path "\n" failure))))
+      ;; (insta/transform
+      ;;  expr-transform-map
+      ;;  output)
+      output)))
+
+(def expr-transform-map
+  {:number edn/read-string
+   :string edn/read-string
+   :boolean edn/read-string
+   :binary-op edn/read-string
+   :expr-ident edn/read-string})
+
+
+;; (def test-code "
+;; stream foo;
+;; import \"ERC20.sol\";
+;; import \"interfaces/Blur.sol\";
+
+;; bayc = ERC721(0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D);
+;; milady = ERC721(0x5Af0D9827E0c53E4799BB226655A1de152A425a5);
+;; blur = Blur(0x000000000000Ad05Ccc4F10045630fb830B95127);
+;; azuki = ERC721(0xED5AF388653567Af2F388E6224dC7C4b3241C544);
+
+;; mfn miladyTransfers = EVENTS
+;;     |> (events) => events.milady.Transfer;
+;;     |> map (t) => { foo: 123 };
+
+;; mfn smolBayc = EVENTS
+;;     |> (events) => events.bayc.Transfer;
+;;     |> map (t) => t._tokenId;
+
+;; mfn baycTransfers = EVENTS
+;;     |> (events) => events.bayc.Transfer;
+;;     |> map (transfer) => {
+;;        epicToken: transfer._tokenId,
+;;        greeting: \"Hello!\",
+;;        advancedGreeting: \"Hello\" + \" World!\",
+;;        stringComp: \"Hello\" > \"World!\",
+;;        num: 42 + 15 + transfer._tokenId,
+;;        numberComp: 42 > 10,
+;;        divTest: 42 / 15,
+;;        mulTest: 42 * 15,
+;;        subTest: 42 - 15,
+;;        compareTest: 42 == 42,
+;;        foo: true,
+;;        addr: 0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D,
+;;        addrCompare: 0x5Af0D9827E0c53E4799BB226655A1de152A425a5 == 0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D,
+;;        baycEqual: 0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D == 0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D,
+;;        tuple: (1, 2, 3),
+;;        list: [1, 2, [3,4,[5,6]]],
+;;        listAccess: [1, 2, 3].0,
+;;        doBlock: do{
+;;            123 + 123;
+;;            69
+;;        },
+;;        rpcTest: #milady.ownerOf(transfer._tokenId)#
+;;     };
+
+;; mfn blurTrades = EVENTS
+;;     |> (events) => events.blur.OrdersMatched;
+
+;; mfn comp = [miladyTransfers, smolBayc]
+;;     |> (milady, smol) => {
+;;        milady: milady,
+;;        smol: smol
+;;     };
+
+;; mfn helloJordan = [EVENTS, baycTransfers]
+;;     |> (events, transfers) => events.blur.OrdersMatched;
+;;     |> map (order) => {
+;;        maker: order.maker,
+;;        taker: order.taker,
+;;        epic: order.sellHash
+;;     };
+
+;; @immutable
+;; sfn storeAzukiOwners = EVENTS
+;;     |> (events) => events.azuki.Transfer;
+;;     |> map (t) => set(t._tokenId, t._to);
+
+;; mfn mapAzukiOwnerChanges = storeAzukiOwners.deltas
+;;     |> (deltas) => deltas;
+
+;; mfn azukiTransfers = EVENTS
+;;     |> (events) => events.azuki.Transfer;
+;; ")
+
+(def test-code "
+stream foo;
+import \"ERC20.sol\";
+
+milady = ERC721(0x5Af0D9827E0c53E4799BB226655A1de152A425a5);
+
+mfn miladyTransfers = EVENTS
+    |> (events) => events.milady.Transfer;
+    |> map (t) => { foo: 123 };
+")
+
+(def modules (atom #{}))
+
+(def module-edges (atom []))
+
+(defn store-inputs
+  [inputs module-name]
+  (for [input inputs]
+    (swap! module-edges conj {:from input :to module-name})))
+
+(defn transform-module
+  [kind ident inputs pipeline]
+  (swap! modules conj ident)
+  (store-inputs inputs ident)
+  (let [input-symbol (gensym "inputs")]
+    `(defn ~(symbol ident)
+       [~@inputs]
+       (let [~input-symbol ~@inputs]
+         (->> ~input-symbol
+              ~@pipeline)))))
+
+(defn transform-event-def
+  [{:keys [:mfn :addresses]} & _]
+  (swap! modules conj mfn)
+  `(defn ~(symbol mfn)
+     []))
+
+(defn transform-attributes
+  [& attributes]
+  (reduce merge attributes))
+
+(defn transform-kv
+  [key value]
+  {(keyword key) value})
+
+(defn transform-function-call
+  [function args]
+  `(~(symbol function) ~@args))
+
+(defn transform-field-access
+  [obj & fields]
+  (let [obj (symbol obj)
+        field-keys (map keyword fields)]
+    `(-> ~obj
+         ~@field-keys)))
+
+(defn transform-binary-expr
+  [lh op rh]
+  `(~op ~lh ~rh))
+
+(defn transform-pipeline
+  [_ & funcs]
+  funcs)
+
+(defn transform-hof
+  [kind lambda]
+  `(~(symbol kind) ~lambda))
+
+(defn transform-lambda
+  [args body]
+  `(fn [~@args]
+     ~body))
+
+(defn transform-fn-args
+  [& args]
+  (map symbol args))
+
+(defn transform-multi-input
+  [& inputs]
+  (vector (map symbol inputs)))
+
+(def binary-op-map {"==" '==
+                    "!=" 'not=
+                    "+" '+
+                    "-" '-
+                    "*" '*
+                    "/" '/
+                    "<" '<
+                    ">" '>
+                    "<=" '<=
+                    ">=" '>=
+                    "&&" 'and
+                    "||" 'or
+                    "!" 'not})
+
+(defn transform-binary-op
+  [op]
+  (get binary-op-map op))
+
+(defn transform-file-meta
+  [_kind ident]
+  `(ns ~(symbol ident)))
+
+(defn transform-interface-def
+  [name & rest]
+  `((ns ~(symbol name))
+    ~@rest))
+
+(def repl-transform-map
+  {:number edn/read-string
+   :boolean edn/read-string
+   :module transform-module
+   :event-def transform-event-def
+   :interface-def transform-interface-def
+   :file-meta transform-file-meta
+
+   :value identity
+   :string identity
+   :address identity
+   :single-input symbol
+   :binary-op transform-binary-op
+   :multi-input transform-multi-input
+
+   :module-inputs vector
+   :array-literal vector
+   :key-value transform-kv
+   :attributes transform-attributes
+   :literal identity
+   :function-call transform-function-call
+   :field-access transform-field-access
+   :binary-expression transform-binary-expr
+
+   :pipeline transform-pipeline
+   :fn-args transform-fn-args
+   :lambda transform-lambda
+   :hof transform-hof})
