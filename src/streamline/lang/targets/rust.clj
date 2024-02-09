@@ -1,16 +1,18 @@
 (ns streamline.lang.targets.rust
   (:require
-   [pogonos.core :as pg]
+   [clojure.edn :as edn]
    [clojure.spec.alpha :as s]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [pogonos.core :as pg]
+   [clojure.string :as string]))
 
 (defmulti ->rust
   "Converts a streamline AST to valid rust code"
   first)
 
-;; (defmethod ->rust :default
-;;   [& rest]
-;;   (throw rest))
+(defmethod ->rust :default
+  [node] node)
+
 
 ;; Write a spec for checking if a value is one of 4 possible keywords
 (s/def ::valid-expansion-context
@@ -53,6 +55,12 @@
        [[~@args]]
        ~@body))))
 
+(defn -escape
+  [string]
+  (-> string
+      (str/replace "&quot;" "\"")
+      (str/replace "&amp;" "&")))
+
 (defmacro template
   "Creates a fn `name` that accepts the `inputs`, and replaces each instance of a input name in the `template-str`, with the value passed in "
   {:clj-kondo/ignore [:unresolved-symbol]}
@@ -63,8 +71,9 @@
      `(defn ~name
         ~inputs
         (let ~remaps
-          (pg/render-string ~template-str
-                            ~input-map))))))
+          (-escape (pg/render-string ~template-str
+                                    ~input-map)))))))
+
 
 (defmacro w-sep
    [sep & forms]
@@ -120,9 +129,6 @@
 (defrust :attributes)
 (defrust :module-inputs)
 (defrust :single-input)
-(defrust :identifier
-  [ident]
-  (symbol ident))
 
 ;; NOTE We are don't call ->rust on the inputs here, but in the templating function,
 ;; this because we still need to read the ast nodes to figure out what input type
@@ -131,3 +137,27 @@
   [name inputs pipeline]
   (gen [name pipeline]
       (mfn name inputs pipeline)))
+
+(template sol-type
+          [type value]
+          "sol_type!({{type}}, \"{{value}}\")")
+
+(defrust :identifier [ident] ident)
+(defrust :number [num] (sol-type "Uint" num))
+(defrust :boolean [bool] (sol-type "Boolean" (if (= bool "true")
+                                                 "1"
+                                                 "0")))
+(defrust :string
+  [string]
+  (sol-type "String" string))
+
+(template binary-expression
+          [lh op rh]
+          "{{lh}} {{op}} {{rh}}")
+
+(defrust :binary-op [op] op)
+
+(defrust :binary-expression
+  [lh op rh]
+  (gen [lh op rh]
+    (binary-expression lh op rh)))
