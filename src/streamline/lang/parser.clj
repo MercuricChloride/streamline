@@ -4,7 +4,7 @@
 
 (def parser
   (insta/parser
-   "<S> = file-meta? import-statement* top-level-interaction*
+   "S = file-meta? import-statement* top-level-interaction*
 
     file-meta = file-type identifier <';'>
     <file-type> = 'stream' / 'sink'
